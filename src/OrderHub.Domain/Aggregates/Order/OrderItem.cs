@@ -1,3 +1,5 @@
+using OrderHub.Domain.ValueObjects;
+
 namespace OrderHub.Domain.Aggregates.Order;
 
 /// <summary>
@@ -6,20 +8,31 @@ namespace OrderHub.Domain.Aggregates.Order;
 public class OrderItem : IEquatable<OrderItem>
 {
     public Guid Id { get; private set; }
-    public string ProductName { get; private set; }
+    public ProductId ProductId { get; private set; }
     public int Quantity { get; private set; }
-    public decimal UnitPrice { get; private set; }
+    public OrderAmount Amount { get; private set; }
 
-    private OrderItem(Guid id, string productName, int quantity, decimal unitPrice)
+    public OrderItem(ProductId productId, int quantity, OrderAmount amount)
+    {
+        if (quantity <= 0)
+            throw new ArgumentException("Quantidade deve ser maior que zero", nameof(quantity));
+
+        ProductId = productId ?? throw new ArgumentNullException(nameof(productId));
+        Quantity = quantity;
+        Amount = amount ?? throw new ArgumentNullException(nameof(amount));
+        Id = Guid.NewGuid();
+    }
+
+    private OrderItem(Guid id, ProductId productId, int quantity, OrderAmount amount)
     {
         Id = id;
-        ProductName = productName;
+        ProductId = productId;
         Quantity = quantity;
-        UnitPrice = unitPrice;
+        Amount = amount;
     }
 
     /// <summary>
-    /// Factory method para criar um novo item de pedido
+    /// Factory method para criar um novo item de pedido (mantido para compatibilidade)
     /// </summary>
     public static OrderItem Create(string productName, int quantity, decimal unitPrice)
     {
@@ -32,13 +45,15 @@ public class OrderItem : IEquatable<OrderItem>
         if (unitPrice <= 0)
             throw new ArgumentException("Preço unitário deve ser maior que zero", nameof(unitPrice));
 
-        return new OrderItem(Guid.NewGuid(), productName, quantity, unitPrice);
+        var productId = ProductId.Create(productName);
+        var amount = OrderAmount.Create(unitPrice);
+        return new OrderItem(productId, quantity, amount);
     }
 
     /// <summary>
     /// Calcula o subtotal deste item (quantidade × preço unitário)
     /// </summary>
-    public decimal GetSubtotal() => Quantity * UnitPrice;
+    public decimal GetSubtotal() => Quantity * Amount.Value;
 
     public bool Equals(OrderItem? other)
     {
@@ -62,7 +77,7 @@ public class OrderItem : IEquatable<OrderItem>
 
     public override string ToString()
     {
-        return $"{ProductName} - Qtd: {Quantity}, Preço: R$ {UnitPrice:F2}";
+        return $"{ProductId.Value} - Qtd: {Quantity}, Preço: {Amount}";
     }
 
     public static bool operator ==(OrderItem? left, OrderItem? right)
