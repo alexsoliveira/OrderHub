@@ -1,3 +1,4 @@
+using OrderHub.Domain.Exceptions;
 using OrderHub.Domain.ValueObjects;
 
 namespace OrderHub.Domain.Aggregates.Order;
@@ -5,9 +6,20 @@ namespace OrderHub.Domain.Aggregates.Order;
 /// <summary>
 /// Aggregate Root que representa um pedido no sistema
 /// Encapsula toda a lógica e regras de negócio relacionadas a pedidos
+/// Implementa 6 regras fundamentais de negócio:
+/// 1. Não pode adicionar itens a pedido que já foi enviado
+/// 2. Pedido deve ter no mínimo 1 item
+/// 3. Não pode remover último item (impedindo pedido vazio)
+/// 4. Remover último item automaticamente marca com Cancelled
+/// 5. Não pode adicionar mais de 10 itens distintos
+/// 6. Transições de status validadas e controladas
 /// </summary>
 public class Order : AggregateRoot, IEquatable<Order>
 {
+    // Constantes de regras de negócio
+    private const int MaximumDistinctItems = 10;
+    private const int MinimumItems = 1;
+
     public OrderId OrderId { get; private set; }
     public CustomerId CustomerId { get; private set; }
     public DateTime OrderDate { get; private set; }
@@ -29,32 +41,34 @@ public class Order : AggregateRoot, IEquatable<Order>
     public static Order CreateOrder(OrderId orderId, CustomerId customerId, DateTime? orderDate = null)
     {
         if (orderId == null)
-            throw new ArgumentNullException(nameof(orderId), "OrderId não pode ser nulo");
+            throw new InvalidOrderException("OrderId não pode ser nulo");
 
         if (customerId == null)
-            throw new ArgumentNullException(nameof(customerId), "CustomerId não pode ser nulo");
+            throw new InvalidOrderException("CustomerId não pode ser nulo");
 
         var order = new Order(orderId, customerId, orderDate ?? DateTime.UtcNow);
         return order;
     }
 
     /// <summary>
-    /// Adiciona um item ao pedido, respeitando regras de negócio
+    /// Adiciona um item ao pedido, respeitando 2 regras de negócio:
+    /// REGRA 1: Não pode adicionar itens a pedido que já foi enviado (Status = Shipped)
+    /// REGRA 5: Não pode adicionar mais de 10 itens distintos no pedido
     /// </summary>
     public void AddItem(OrderItem item)
     {
         if (item == null)
-            throw new ArgumentNullException(nameof(item), "Item não pode ser nulo");
+            throw new InvalidOrderException("Item não pode ser nulo");
 
-        // Regra 1: Não pode adicionar itens a pedido que já foi enviado
+        // REGRA 1: Não pode adicionar itens a pedido que já foi enviado
         if (Status == OrderStatus.Shipped)
-            throw new InvalidOperationException("Não é possível adicionar itens a um pedido que já foi enviado");
+            throw new InvalidOrderException("Não é possível adicionar itens a um pedido que já foi enviado");
 
-        // Regra 5: Não pode adicionar mais de 10 itens distintos no pedido
-        if (_items.Count >= 10 && !_items.Contains(item))
-            throw new InvalidOperationException("Não é possível adicionar mais de 10 itens distintos no pedido");
+        // REGRA 5: Não pode adicionar mais de 10 itens distintos no pedido
+        if (_items.Count >= MaximumDistinctItems && !_items.Contains(item))
+            throw new InvalidOrderException($"Não é possível adicionar mais de {MaximumDistinctItems} itens distintos no pedido");
 
-        // Se o item já existe, incrementar a quantidade
+        // Se o item já existe, substituir
         var existingItem = _items.FirstOrDefault(i => i.Equals(item));
         if (existingItem != null)
         {
@@ -65,31 +79,33 @@ public class Order : AggregateRoot, IEquatable<Order>
     }
 
     /// <summary>
-    /// Remove um item do pedido, respeitando regras de negócio
+    /// Remove um item do pedido, respeitando regras de negócio:
+    /// REGRA 3: Não pode remover último item (impedindo pedido vazio)
+    /// REGRA 4: Se ficar vazio, automaticamente marca pedido como Cancelled
     /// </summary>
     public void RemoveItem(OrderItem item)
     {
         if (item == null)
-            throw new ArgumentNullException(nameof(item), "Item não pode ser nulo");
+            throw new InvalidOrderException("Item não pode ser nulo");
 
-        // Regra 3: Não pode remover último item (impedindo pedido vazio)
-        if (_items.Count == 1)
-            throw new InvalidOperationException("Não é possível remover o último item do pedido");
+        // REGRA 3: Não pode remover último item (impedindo pedido vazio)
+        if (_items.Count <= MinimumItems)
+            throw new InvalidOrderException("Não é possível remover o último item do pedido. Pedido deve ter no mínimo 1 item");
 
         if (!_items.Remove(item))
-            throw new InvalidOperationException("Item não encontrado no pedido");
+            throw new InvalidOrderException("Item não encontrado no pedido");
 
-        // Regra 4: Remover o último item automaticamente marca pedido como Cancelled
-        if (_items.Count == 0)
+        // REGRA 4: Se ficar vazio, automaticamente marca como Cancelled
+        if (_items.Count < MinimumItems)
         {
             Status = OrderStatus.Cancelled;
         }
     }
 
     /// <summary>
-    /// Verifica se é possível adicionar um item
+    /// Verifica se é possível adicionar um item respeitando regras de negócio
     /// </summary>
-    public bool CanAddItem(OrderItem item)
+    public bool CanAddItem(OrderItem? item)
     {
         if (item == null)
             return false;
@@ -99,29 +115,32 @@ public class Order : AggregateRoot, IEquatable<Order>
             return false;
 
         // Não pode ter mais de 10 itens distintos
-        if (_items.Count >= 10 && !_items.Contains(item))
+        if (_items.Count >= MaximumDistinctItems && !_items.Contains(item))
             return false;
 
         return true;
     }
 
     /// <summary>
-    /// Verifica se é possível remover um item
+    /// Verifica se é possível remover um item respeitando regras de negócio
     /// </summary>
-    public bool CanRemoveItem(OrderItem item)
+    public bool CanRemoveItem(OrderItem? item)
     {
         if (item == null)
             return false;
 
-        // Não pode remover único item
-        if (_items.Count == 1)
+        // Não pode remover se é o último item
+        if (_items.Count <= MinimumItems)
             return false;
 
         return _items.Contains(item);
     }
 
     /// <summary>
-    /// Verifica se é possível fazer transição para um novo status
+    /// REGRA 6: Verifica se é possível fazer transição para um novo status
+    /// Transições permitidas:
+    /// - New → Pending → Processing → Shipped → Delivered
+    /// - Cancelled pode ser atingido de qualquer estado
     /// </summary>
     public bool CanTransitionTo(OrderStatus newStatus)
     {
@@ -140,12 +159,13 @@ public class Order : AggregateRoot, IEquatable<Order>
     }
 
     /// <summary>
-    /// Muda o status do pedido com validação de transição
+    /// REGRA 6: Muda o status do pedido com validação de transição
+    /// Lança exceção se a transição não for permitida
     /// </summary>
     public void ChangeStatus(OrderStatus newStatus)
     {
         if (!CanTransitionTo(newStatus))
-            throw new InvalidOperationException($"Não é possível transicionar de {Status} para {newStatus}");
+            throw new InvalidOrderException($"Transição de status inválida: não é possível passar de '{Status}' para '{newStatus}'");
 
         Status = newStatus;
     }
@@ -159,9 +179,34 @@ public class Order : AggregateRoot, IEquatable<Order>
     }
 
     /// <summary>
+    /// REGRA 2: Verifica se o pedido tem itens (deve ter no mínimo 1)
+    /// </summary>
+    public bool HasMinimumItems => _items.Count >= MinimumItems;
+
+    /// <summary>
     /// Verifica se o pedido tem itens
     /// </summary>
     public bool HasItems => _items.Count > 0;
+
+    /// <summary>
+    /// Retorna a quantidade de itens distintos
+    /// </summary>
+    public int ItemCount => _items.Count;
+
+    /// <summary>
+    /// Valida todas as regras de negócio do pedido
+    /// Lança InvalidOrderException se alguma regra for violada
+    /// </summary>
+    public void ValidateBusinessRules()
+    {
+        // REGRA 2: Pedido deve ter no mínimo 1 item
+        if (!HasMinimumItems)
+            throw new InvalidOrderException($"Pedido deve ter no mínimo {MinimumItems} item(ns)");
+
+        // Validação de status
+        if (Status == default)
+            throw new InvalidOrderException("Status do pedido é inválido");
+    }
 
     public bool Equals(Order? other)
     {
