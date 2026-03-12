@@ -1,429 +1,485 @@
-# 📋 Plano de Ação - FEAT-02 Domínio
+# FEAT-02 | Plano de Ação - Domain Layer
 
-**Status:** 📝 Planejamento  
-**Data:** 12 de Março de 2026  
-**Feature:** FEAT-02 | Implementar Camada de Domínio (Domain Layer) e Ports  
-
----
-
-## 🎯 Objetivo da Feature
-
-Implementar a **camada de domínio** seguindo princípios de **Domain Driven Design (DDD)** e **Arquitetura Hexagonal**, criando as entidades, value objects, agregados e portas (interfaces) necessárias para o sistema de gerenciamento de pedidos.
+**Data**: 12 de Março de 2026  
+**Feature**: FEAT-02 | Domain Layer  
+**Status**: Em Planejamento  
+**Baseado em**: Azure DevOps Issue 68 (FEAT-02 | Domain Layer)  
+**Total de Tasks**: 6  
+**Sprint**: Sprint 1  
+**Consultado via MCP**: ✅ GetWorkItem (ID 68) e GetRelatedWorkItems  
 
 ---
 
-## 📊 Escopo e Tarefas
+## 📋 Visão Geral
 
-### TASK-09: Criar Projeto OrderHub.Domain
-**Objetivo:** Adicionar projeto Class Library para camada de domínio  
-**Descrição:**
-- Criar novo projeto Class Library: `src/OrderHub.Domain/`
-- Configurar arquivos do projeto (.csproj)
-- Estrutura de pastas inicial
-- Referências necessárias
+Implementação da camada de domínio (Domain Layer) seguindo os princípios de **Hexagonal Architecture** e **Domain-Driven Design (DDD)**.
 
-**Arquivos a Criar:**
-```
-src/OrderHub.Domain/
-├── OrderHub.Domain.csproj
-├── ...
-```
+Este documento detalha as **6 tasks reais** da FEAT-02 conforme definidas no Azure DevOps Issue 68.
 
-**Comandos:**
+---
+
+## 🎯 Objetivo
+
+Criar uma base sólida para o domínio de negócio da aplicação OrderHub, implementando:
+- **Projeto Domain** estruturado e funcional
+- **Agregados de Domínio** com comportamento encapsulado
+- **Value Objects** imutáveis
+- **Validações de Domínio** robustas
+- **Regras de Negócio** enforced
+- **Testes Unitários** com cobertura adequada
+
+---
+
+## 📊 Tasks da FEAT-02
+
+### ✅ TASK-09: Criar projeto OrderHub.Domain
+
+**ID Azure DevOps**: 92  
+**Título**: TASK-09 | Criar projeto OrderHub.Domain  
+**Status**: To Do  
+**Sprint**: Sprint 1  
+**Prioridade**: 2  
+
+**Descrição**:
+Criar o projeto de biblioteca de classes .NET 8 que conterá toda a lógica de domínio da aplicação OrderHub.
+
+**O que fazer**:
 ```bash
-cd src
-dotnet new classlib -n OrderHub.Domain
-cd OrderHub.Domain
-# adicionar .csproj ao sln
-cd ../..
+# Criar projeto class library
+cd src/
+dotnet new classlib -n OrderHub.Domain -f net8.0
+
+# Adicionar ao sln
+cd ..
 dotnet sln add src/OrderHub.Domain/OrderHub.Domain.csproj
+
+# Criar estrutura de pastas
+mkdir src/OrderHub.Domain/Aggregates
+mkdir src/OrderHub.Domain/ValueObjects
+mkdir src/OrderHub.Domain/Entities
+mkdir src/OrderHub.Domain/Exceptions
+mkdir src/OrderHub.Domain/Ports
+mkdir src/OrderHub.Domain/Events
+mkdir src/OrderHub.Domain/Constants
 ```
 
-**Acceptance Criteria:**
-- ✅ Projeto criado e compila sem erros
-- ✅ Referenciado na solução OrderHub.sln
-- ✅ Estrutura padrão de pastas criada
-- ✅ Arquivo de teste incluído
+**Checklist**:
+- [ ] Projeto OrderHub.Domain criado com .NET 8
+- [ ] Referenciado em OrderHub.sln
+- [ ] Todas pastas criadas
+- [ ] Arquivo .csproj configurado com `nullable` enabled
+- [ ] Solução compila sem erros
+- [ ] Commit: `feat: Create OrderHub.Domain project structure`
 
-**Estimativa:** 1 ponto  
-**Prioridade:** Alta
+**Critério de Aceitação**:
+- ✅ Projeto OrderHub.Domain criado e compilável
+- ✅ Estrutura de pastas implementada
+- ✅ Referenciado corretamente em OrderHub.sln
+- ✅ Nenhum warning de compilação
 
 ---
 
-### TASK-10: Implementar Order Aggregate Root
-**Objetivo:** Criar a entidade raiz de agregação para Pedidos  
-**Descrição:**
-- Criar classe `Order` como Aggregate Root
-- Implementar propriedades essenciais (Id, OrderNumber, CreatedAt, Status, Items, TotalAmount)
-- Implementar value objects para status e valores monetários
-- Validações de negócio na criação
+### ✅ TASK-10: Criar entidade Order
 
-**Arquivos a Criar:**
-```
-src/OrderHub.Domain/
-├── Aggregates/
-│   └── Order/
-│       ├── Order.cs              # Aggregate Root
-│       ├── OrderStatus.cs         # Value Object (Enum)
-│       ├── OrderItem.cs           # Entity (parte do agregado)
-│       └── Money.cs              # Value Object
-├── Models/
-│   └── ...
-```
+**ID Azure DevOps**: 93  
+**Título**: TASK-10 | Criar entidade Order  
+**Status**: To Do  
+**Sprint**: Sprint 1  
+**Prioridade**: 2  
 
-**Métodos da Classe Order:**
-- `CreateOrder(customerId, items)` - Factory method
-- `AddItem(product, quantity, price)`
-- `RemoveItem(orderItemId)`
-- `ChangeStatus(newStatus)`
-- `CalculateTotalAmount()`
+**Descrição**:
+Implementar a entidade `Order` como Aggregate Root, encapsulando lógica de pedidos.
 
-**Acceptance Criteria:**
-- ✅ Classe Order criada e funcional
-- ✅ Value Objects criados (Money, OrderStatus)
-- ✅ Validações implementadas
-- ✅ Métodos de negócio funcionam corretamente
-- ✅ Compila sem warnings
-
-**Estimativa:** 3 pontos  
-**Prioridade:** Alta
-
----
-
-### TASK-11: Implementar Order Item Entity
-**Objetivo:** Criar a entidade que representa itens dentro do pedido  
-**Descrição:**
-- Criar classe `OrderItem` como Entity
-- Referência para Product
-- Quantidade e Preço unitário
-- Cálculo de subtotal
-
-**Arquivos a Criar:**
-```
-src/OrderHub.Domain/
-├── Aggregates/Order/
-│   └── OrderItem.cs
-├── ValueObjects/
-│   └── Money.cs
-```
-
-**Propriedades:**
-- `Id: Guid`
-- `ProductId: Guid`
-- `Quantity: int`
-- `UnitPrice: Money`
-- `Subtotal: Money { get; }`
-
-**Acceptance Criteria:**
-- ✅ Entity criada com validações
-- ✅ Subtotal calculado automaticamente
-- ✅ Imutável onde apropriado
-- ✅ Integra com Order Aggregate
-
-**Estimativa:** 2 pontos  
-**Prioridade:** Alta
-
----
-
-### TASK-12: Implementar Customer Entity
-**Objetivo:** Criar a entidade que representa clientes  
-**Descrição:**
-- Criar classe `Customer`
-- Propriedades: Id, Name, Email, Phone, Address
-- Value Objects: Email, PhoneNumber, Address
-- Validações de email e telefone
-
-**Arquivos a Criar:**
-```
-src/OrderHub.Domain/
-├── Entities/
-│   └── Customer.cs
-├── ValueObjects/
-│   ├── Email.cs
-│   ├── PhoneNumber.cs
-│   └── Address.cs
-```
-
-**Acceptance Criteria:**
-- ✅ Entity criada com validações
-- ✅ Value Objects implementados
-- ✅ Email normalizado e validado
-- ✅ Métodos de atualização de dados
-
-**Estimativa:** 2 pontos  
-**Prioridade:** Média
-
----
-
-### TASK-13: Implementar Product Value Object
-**Objetivo:** Criar value object para produtos  
-**Descrição:**
-- Criar classe `Product` (pode ser um aggregate ou value object)
-- SKU, Name, Description, Price, StockQuantity
-- Validações de preço e estoque
-
-**Arquivos a Criar:**
-```
-src/OrderHub.Domain/
-├── Aggregates/
-│   └── Product/
-│       ├── Product.cs         # Aggregate Root
-│       ├── ProductSku.cs      # Value Object
-│       └── Stock.cs           # Value Object
-```
-
-**Propriedades:**
-- `Id: Guid`
-- `Sku: ProductSku`
-- `Name: string`
-- `Description: string`
-- `Price: Money`
-- `StockQuantity: int`
-
-**Acceptance Criteria:**
-- ✅ Aggregate criado
-- ✅ Value objects para SKU e preço
-- ✅ Validações de negócio
-- ✅ Métodos para atualizar estoque
-
-**Estimativa:** 2 pontos  
-**Prioridade:** Média
-
----
-
-### TASK-14: Implementar Domain Ports (Interfaces)
-**Objetivo:** Definir contratos para adaptadores da camada de infraestrutura  
-**Descrição:**
-- Criar interfaces de repositórios (Ports)
-- IOrderRepository
-- ICustomerRepository
-- IProductRepository
-- IUnitOfWork (para transações)
-- INotificationService (para enviar notificações)
-
-**Arquivos a Criar:**
-```
-src/OrderHub.Domain/
-├── Ports/
-│   ├── Repositories/
-│   │   ├── IOrderRepository.cs
-│   │   ├── ICustomerRepository.cs
-│   │   └── IProductRepository.cs
-│   ├── Services/
-│   │   ├── INotificationService.cs
-│   │   └── IUnitOfWork.cs
-│   └── Outgoing/
-│       └── IOrderEventPublisher.cs
-```
-
-**Métodos das Interfaces:**
+**Estrutura Esperada**:
 ```csharp
-// IOrderRepository
-Task<Order> GetByIdAsync(Guid id);
-Task<IEnumerable<Order>> GetByCustomerIdAsync(Guid customerId);
-Task AddAsync(Order order);
-Task UpdateAsync(Order order);
-Task DeleteAsync(Guid id);
-
-// ICustomerRepository
-Task<Customer> GetByIdAsync(Guid id);
-Task<Customer?> GetByEmailAsync(Email email);
-Task AddAsync(Customer customer);
-
-// IProductRepository
-Task<Product> GetByIdAsync(Guid id);
-Task<Product?> GetBySkuAsync(ProductSku sku);
-```
-
-**Acceptance Criteria:**
-- ✅ Todas as interfaces criadas
-- ✅ Métodos bem definidos
-- ✅ Sem dependências de infraestrutura
-- ✅ Documentadas com XML comments
-
-**Estimativa:** 2 pontos  
-**Prioridade:** Alta
-
----
-
-### TASK-15: Implementar Domain Events
-**Objetivo:** Criar event sourcing para rastreabilidade de eventos de domínio  
-**Descrição:**
-- Classe base `DomainEvent`
-- Eventos específicos:
-  - `OrderCreatedEvent`
-  - `OrderItemAddedEvent`
-  - `OrderStatusChangedEvent`
-  - `CustomerCreatedEvent`
-  - `ProductStockUpdatedEvent`
-
-**Arquivos a Criar:**
-```
-src/OrderHub.Domain/
-├── Events/
-│   ├── DomainEvent.cs          # Base abstrata
-│   ├── DomainEventPublisher.cs
-│   └── Specific/
-│       ├── OrderCreatedEvent.cs
-│       ├── OrderStatusChangedEvent.cs
-│       ├── OrderItemAddedEvent.cs
-│       ├── CustomerCreatedEvent.cs
-│       └── ProductStockUpdatedEvent.cs
-```
-
-**Propriedades Base:**
-```csharp
-public abstract class DomainEvent
+namespace OrderHub.Domain.Aggregates.Order
 {
-    public Guid AggregateId { get; }
-    public DateTime OccurredAt { get; }
-    public int Version { get; }
+    public class Order : AggregateRoot
+    {
+        public OrderId OrderId { get; private set; }
+        public CustomerId CustomerId { get; private set; }
+        public DateTime OrderDate { get; private set; }
+        public OrderStatus Status { get; private set; }
+        public List<OrderItem> Items { get; private set; } = new();
+        
+        // Factory method
+        public static Order CreateOrder(OrderId orderId, CustomerId customerId)
+        {
+            // implementação
+        }
+        
+        public void AddItem(OrderItem item)
+        {
+            // implementação com validações
+        }
+        
+        public void RemoveItem(OrderItem item)
+        {
+            // implementação com validações
+        }
+        
+        public bool CanAddItem(OrderItem item)
+        {
+            // validação de regras
+        }
+    }
 }
 ```
 
-**Acceptance Criteria:**
-- ✅ Base class DomainEvent criada
-- ✅ Todos os eventos implementados
-- ✅ Agregados rastreiam eventos
-- ✅ Publisher permite subscrição
+**O que fazer**:
+- [ ] Criar classe `Order` em `src/OrderHub.Domain/Aggregates/Order/Order.cs`
+- [ ] Implementar propriedades: `OrderId`, `CustomerId`, `OrderDate`, `Status`, `Items`
+- [ ] Criar `OrderId` como Value Object
+- [ ] Criar `CustomerId` como Value Object
+- [ ] Criar `OrderStatus` como enum ou Value Object
+- [ ] Adicionar método `CreateOrder()` como factory method
+- [ ] Implementar método `AddItem(OrderItem item)` com validações
+- [ ] Implementar método `RemoveItem(OrderItem item)` com validações
+- [ ] Implementar método `CanAddItem()` para verificar regras
+- [ ] Implementar `IEquatable<Order>` para comparação
+- [ ] Adicionar private setter para propriedades críticas
+- [ ] Criar classe `OrderItem` em mesmo namespace
+- [ ] Implementar validações de negócio
+- [ ] Commit: `feat: Implement Order aggregate root`
 
-**Estimativa:** 2 pontos  
-**Prioridade:** Média
+**Critério de Aceitação**:
+- ✅ Aggregate Root funciona corretamente
+- ✅ Métodos implementados e validam regras
+- ✅ Encapsulamento mantido (sem setters públicos inadequados)
+- ✅ Compila sem warnings
 
 ---
 
-### TASK-16: Adicionar Testes Unitários do Domínio
-**Objetivo:** Cobrir 80%+ do código de domínio com testes  
-**Descrição:**
-- Criar projeto de testes: `tests/OrderHub.Domain.Tests/`
-- Testes para agregados: Order, Product, Customer
-- Testes para value objects: Money, Email, Address
-- Testes para validações
+### ✅ TASK-11: Criar ValueObject OrderAmount
 
-**Arquivos a Criar:**
+**ID Azure DevOps**: 94  
+**Título**: TASK-11 | Criar ValueObject OrderAmount  
+**Status**: To Do  
+**Sprint**: Sprint 1  
+**Prioridade**: 2  
+
+**Descrição**:
+Implementar Value Object `OrderAmount` para representar valores monetários com precisão.
+
+**Estrutura Esperada**:
+```csharp
+namespace OrderHub.Domain.ValueObjects
+{
+    public class OrderAmount : IEquatable<OrderAmount>
+    {
+        public decimal Value { get; }
+        public string Currency { get; }
+        
+        private OrderAmount(decimal value, string currency = "BRL")
+        {
+            Value = value;
+            Currency = currency;
+        }
+        
+        // Factory method
+        public static OrderAmount Create(decimal value, string currency = "BRL")
+        {
+            // validação e criação
+        }
+    }
+}
+```
+
+**O que fazer**:
+- [ ] Criar classe `OrderAmount` em `src/OrderHub.Domain/ValueObjects/OrderAmount.cs`
+- [ ] Adicionar propriedades: `Value` (decimal) e `Currency` (string)
+- [ ] Implementar construtor privado
+- [ ] Adicionar factory method `Create(decimal value, string currency = "BRL")`
+- [ ] Adicionar validação: valor deve ser > 0
+- [ ] Implementar `IEquatable<OrderAmount>` para comparação por valor
+- [ ] Implementar operadores `==` e `!=`
+- [ ] Adicionar método `ToString()` formatado: "R$ 100,00"
+- [ ] Implementar `GetHashCode()` corretamente
+- [ ] Fazer **completamente imutável** (readonly em tudo)
+- [ ] Commit: `feat: Implement OrderAmount value object`
+
+**Critério de Aceitação**:
+- ✅ Value Object imutável e com negócio bem definido
+- ✅ Comparação por valor funciona
+- ✅ Validações impedem valores inválidos
+- ✅ Sem qualquer variação de estado após criação
+
+---
+
+### ✅ TASK-12: Criar validações de domínio
+
+**ID Azure DevOps**: 95  
+**Título**: TASK-12 | Criar validações de domínio  
+**Status**: To Do  
+**Sprint**: Sprint 1  
+**Prioridade**: 2  
+
+**Descrição**:
+Implementar mecanismo robusto de validações específicas do domínio.
+
+**Estrutura Esperada**:
+```csharp
+namespace OrderHub.Domain.Exceptions
+{
+    public class DomainException : Exception
+    {
+        public DomainException(string message) : base(message) { }
+    }
+    
+    public class InvalidOrderException : DomainException
+    {
+        public InvalidOrderException(string message) : base(message) { }
+    }
+}
+
+namespace OrderHub.Domain
+{
+    public static class DomainValidator
+    {
+        public static void ThrowIfNull(object value, string message)
+        {
+            if (value == null) throw new DomainException(message);
+        }
+        
+        public static void ThrowIfNegativeOrZero(decimal value, string message)
+        {
+            if (value <= 0) throw new DomainException(message);
+        }
+    }
+}
+```
+
+**O que fazer**:
+- [ ] Criar classe `DomainException` em `src/OrderHub.Domain/Exceptions/DomainException.cs`
+- [ ] Criar classe `InvalidOrderException` herdando `DomainException`
+- [ ] Criar classe `InvalidOrderAmountException` herdando `DomainException`
+- [ ] Criar classe `DomainValidator` com métodos estáticos:
+  - `ThrowIfNull(object value, string message)`
+  - `ThrowIfNegativeOrZero(decimal value, string message)`
+  - `ThrowIfEmpty(string value, string message)`
+  - `ThrowIfInvalidEmail(string email, string message)`
+  - `ThrowIfNotInRange(decimal value, decimal min, decimal max, string message)`
+- [ ] Integrar `DomainValidator` em construtores de Order e OrderAmount
+- [ ] Adicionar mensagens de erro específicas **em português**
+- [ ] Commit: `feat: Implement domain validation layer`
+
+**Critério de Aceitação**:
+- ✅ Validações rodam no momento da construção
+- ✅ Mensagens em português e claras
+- ✅ Impede estado inválido no domínio
+- ✅ Utilizado em todas entidades/value objects
+
+---
+
+### ✅ TASK-13: Implementar regras de negócio básicas do pedido
+
+**ID Azure DevOps**: 96  
+**Título**: TASK-13 | Implementar regras de negócio básicas do pedido  
+**Status**: To Do  
+**Sprint**: Sprint 1  
+**Prioridade**: 2  
+
+**Descrição**:
+Codificar regras de negócio específicas para a entidade Order.
+
+**Regras a Implementar**:
+
+1. **Regra 1**: Não pode adicionar itens a pedido que já foi enviado (Status = Shipped)
+   - Validar no método `AddItem()`
+   - Lançar `InvalidOrderException` se Status == Shipped
+
+2. **Regra 2**: Total do pedido deve ter no mínimo 1 item
+   - Validar na criação de Order
+   - Garantir que Order sempre tem pelo menos 1 item
+
+3. **Regra 3**: Não pode remover último item (impedindo pedido vazio)
+   - Validar no método `RemoveItem()`
+   - Impedir remoção se Items.Count == 1
+
+4. **Regra 4**: Remover o último item automaticamente marca pedido como Cancelled
+   - Se `Items.Count == 1` e `RemoveItem()` é chamado
+   - Status muda para `OrderStatus.Cancelled`
+
+5. **Regra 5**: Não pode adicionar mais de 10 itens distintos no pedido
+   - Validar no método `AddItem()`
+   - Permitir até 10 itens diferentes
+
+6. **Regra 6**: Implementar método `IsValidForStatus(OrderStatus newStatus)`
+   - Valida transições de status permitidas
+   - Novo → Pending → Processing → Shipped → Delivered
+   - Cancelled pode ser atingido de qualquer estado
+
+**O que fazer**:
+- [ ] Implementar cada regra em método apropriado
+- [ ] Adicionar método `CanAddItem()` retornando bool
+- [ ] Adicionar método `CanRemoveItem()` retornando bool
+- [ ] Adicionar método `CanTransitionTo(OrderStatus newStatus)` retornando bool
+- [ ] Adicionar método `ChangeStatus(OrderStatus newStatus)` com validação
+- [ ] Adicionar propriedade `DomainEvents` (List<IDomainEvent>) para futuro uso
+- [ ] Codificar regras em português nas mensagens de erro
+- [ ] Commit: `feat: Implement Order domain business rules`
+
+**Critério de Aceitação**:
+- ✅ Todas 6 regras implementadas e enforced
+- ✅ Impossível violar regra via API pública
+- ✅ Métodos com nomes descritivos e intencionais
+- ✅ Mensagens de erro claras em português
+
+---
+
+### ✅ TASK-14: Criar testes unitários para entidade Order
+
+**ID Azure DevOps**: 97  
+**Título**: TASK-14 | Criar testes unitários para entidade Order  
+**Status**: To Do  
+**Sprint**: Sprint 1  
+**Prioridade**: 2  
+
+**Descrição**:
+Implementar suite de testes unitários para cobrir comportamento da entidade Order.
+
+**O que fazer**:
+
+1. **Criar Projeto de Testes**:
+   ```bash
+   cd tests/
+   dotnet new xunit -n OrderHub.Domain.Tests
+   cd ..
+   dotnet sln add tests/OrderHub.Domain.Tests/OrderHub.Domain.Tests.csproj
+   dotnet add tests/OrderHub.Domain.Tests/reference src/OrderHub.Domain/OrderHub.Domain.csproj
+   ```
+
+2. **Testes de Criação Order**:
+   - [ ] `CreateOrder_WithValidData_ReturnsOrderEntity`
+   - [ ] `CreateOrder_WithNullOrderId_ThrowsDomainException`
+   - [ ] `CreateOrder_WithNullCustomerId_ThrowsDomainException`
+
+3. **Testes de Adição de Itens**:
+   - [ ] `AddItem_WithValidItem_ItemAddedSuccessfully`
+   - [ ] `AddItem_ToShippedOrder_ThrowsInvalidOrderException`
+   - [ ] `AddItem_Exceeding10Items_ThrowsInvalidOrderException`
+   - [ ] `AddItem_WithValidItem_UpdatesOrderTotal`
+
+4. **Testes de Remoção de Itens**:
+   - [ ] `RemoveItem_WithValidItem_ItemRemovedSuccessfully`
+   - [ ] `RemoveItem_LastItem_OrderCancelledAutomatically`
+   - [ ] `CanRemoveItem_WithSingleItem_ReturnsFalse`
+   - [ ] `RemoveItem_UpdatesOrderTotal`
+
+5. **Testes de OrderAmount**:
+   - [ ] `OrderAmount_Created_WithValidValue_Success`
+   - [ ] `OrderAmount_Created_WithInvalidValue_ThrowsDomainException`
+   - [ ] `OrderAmount_Comparison_ReturnsTrueForEqualValues`
+   - [ ] `OrderAmount_GetHashCode_SameForEqualValues`
+   - [ ] `OrderAmount_ToString_FormattedCorrectly`
+
+6. **Testes de Validações**:
+   - [ ] `CreateOrder_WithNullCustomerId_ThrowsException`
+   - [ ] `CreateOrder_WithNullOrderAmount_ThrowsException`
+   - [ ] `AddItem_WithNullItem_ThrowsException`
+
+7. **Testes de Regras de Negócio**:
+   - [ ] `CanTransitionTo_ValidTransition_ReturnsTrue`
+   - [ ] `CanTransitionTo_InvalidTransition_ReturnsFalse`
+   - [ ] `ChangeStatus_ToValidStatus_UpdatesStatus`
+
+**Estrutura de Pastas**:
 ```
 tests/OrderHub.Domain.Tests/
-├── OrderHub.Domain.Tests.csproj
 ├── Aggregates/
-│   ├── OrderAggregateTests.cs
-│   └── ProductAggregateTests.cs
-├── Entities/
-│   └── CustomerEntityTests.cs
+│   └── OrderTests.cs
 ├── ValueObjects/
-│   ├── MoneyTests.cs
-│   ├── EmailTests.cs
-│   └── AddressTests.cs
-└── Events/
-    └── DomainEventTests.cs
+│   └── OrderAmountTests.cs
+├── Validators/
+│   └── DomainValidatorTests.cs
+└── Fixtures/
+    └── OrderTestFixture.cs
 ```
 
-**Casos de Teste:**
-```csharp
-// OrderAggregateTests
-[Theory]
-public void CreateOrder_WithValidData_ShouldSucceed()
-public void CreateOrder_WithoutItems_ShouldFail()
-public void AddItem_ToOrder_ShouldUpdateTotal()
-public void ChangeStatus_ToInvalidStatus_ShouldFail()
+**Checklist**:
+- [ ] Projeto OrderHub.Domain.Tests criado
+- [ ] Todas classes de teste criadas
+- [ ] Mínimo 30 testes implementados
+- [ ] Cobertura >= 80% do código de domínio
+- [ ] Fixtures para reutilização de dados
+- [ ] Todos testes passando localmente
+- [ ] Suite executa em < 2 segundos
+- [ ] Commit: `test: Add unit tests for Order aggregate`
 
-// MoneyTests
-[Theory]
-public void Money_Add_ShouldCalculateCorrectly()
-public void Money_InvalidAmount_ShouldThrow()
-
-// EmailTests
-[Theory]
-public void Email_InvalidFormat_ShouldThrow()
-public void Email_Equality_ShouldWork()
-```
-
-**Acceptance Criteria:**
-- ✅ 80%+ code coverage
-- ✅ Testes passam
-- ✅ Testes bem nomeados
-- ✅ Usa xUnit e Moq
-- ✅ 50+ testes implementados
-
-**Estimativa:** 3 pontos  
-**Prioridade:** Alta
+**Critério de Aceitação**:
+- ✅ Cobertura mínima 80% do código de domínio
+- ✅ Todos testes passam em CI/CD
+- ✅ Azure Pipelines executa testes automaticamente
+- ✅ Testes rápidos e determinísticos
 
 ---
 
-## 📅 Cronograma Estimado
+## 📈 Sequência Recomendada de Execução
 
-| TASK | Título | Pontos | Dias | Período |
-|------|--------|--------|------|---------|
-| 09 | Criar Projeto OrderHub.Domain | 1 | 1h | Dia 1 |
-| 10 | Implementar Order Aggregate Root | 3 | 1-2h | Dia 1-2 |
-| 11 | Implementar Order Item Entity | 2 | 1h | Dia 2 |
-| 12 | Implementar Customer Entity | 2 | 1-2h | Dia 2-3 |
-| 13 | Implementar Product Aggregate | 2 | 1-2h | Dia 3 |
-| 14 | Implementar Domain Ports | 2 | 2h | Dia 3-4 |
-| 15 | Implementar Domain Events | 2 | 1-2h | Dia 4 |
-| 16 | Adicionar Testes Unitários | 3 | 2-3h | Dia 4-5 |
-| **TOTAL** | | **17 pontos** | **10-14h** | **~1 semana** |
+| # | Task | Objetivo | Estimativa | Dependências |
+|---|------|----------|-----------|--------------|
+| 1 | TASK-09 | Criar estrutura base | 30 min | Nenhuma |
+| 2 | TASK-10 | Implementar Order | 1.5h | TASK-09 |
+| 3 | TASK-11 | Criar OrderAmount VO | 1h | TASK-09 |
+| 4 | TASK-12 | Validações Domínio | 1h | TASK-09 |
+| 5 | TASK-13 | Regras Negócio | 1h | TASK-10, TASK-12 |
+| 6 | TASK-14 | Testes Unitários | 1.5h | TASK-10, TASK-11 |
+| | **TOTAL** | | **~6.5h** | |
 
 ---
 
-## 🛠️ Tecnologias e Padrões
+## ✅ Checklist Geral FEAT-02
 
-### Padrões de Design
-- ✅ Aggregate Root (DDD)
-- ✅ Entity (DDD)
-- ✅ Value Object (DDD)
-- ✅ Domain Events
-- ✅ Factory Methods
-- ✅ Repository Pattern
-- ✅ Unit of Work Pattern
-
-### Validações
-- ✅ Fluent Validation (opcional, pode adicionar depois)
-- ✅ Data Annotations
-- ✅ Custom Validations
+### Código
+- [ ] Compila sem erros
+- [ ] Nenhum warning de compilação
+- [ ] Nomenclatura padrão .NET (PascalCase)
+- [ ] Encapsulamento adequado (private setters)
+- [ ] Value Objects imutáveis
+- [ ] Validações em construtores
 
 ### Testes
-- ✅ xUnit
-- ✅ Moq
-- ✅ FluentAssertions
+- [ ] Cobertura >= 80%
+- [ ] Todos testes PASSING
+- [ ] Azure Pipelines executa com sucesso
+- [ ] Testes rápidos (< 2s suite completa)
+
+### Git & DevOps
+- [ ] Commits seguem BRANCH_POLICY.md
+- [ ] Feature branch criado: `feature/FEAT-02/domain-layer`
+- [ ] Todos commits pusheados
+- [ ] Build Pipeline PASS
+
+### Documentação
+- [ ] README.md atualizado
+- [ ] Código comentado (métodos públicos)
+- [ ] Diagrama UML atualizado (se aplicável)
 
 ---
 
-## 📝 Checklist de Qualidade
+## 🔗 Sincronização com Azure DevOps
 
-- [ ] Sem dependências externas no Domain
-- [ ] 80%+ test coverage
-- [ ] XML documentation completa
-- [ ] Sem static methods (exceto factories)
-- [ ] Sem null references
-- [ ] Validações em construtores
-- [ ] Value Objects imutáveis
-- [ ] Métodos bem nomeados (Ubiquitous Language)
+Para cada task completada, atualizar o status no Azure DevOps:
 
----
+```powershell
+# Exemplo: Marcar TASK-09 como Done
+mcp_azure-devops-_UpdateWorkItem -id 92 -state "Done"
 
-## 🔗 Dependências
+# Marcação em lote (ao finalizar full FEAT-02)
+for ($id in 92, 93, 94, 95, 96, 97) {
+    mcp_azure-devops-_UpdateWorkItem -id $id -state "Done"
+}
 
-- **FEAT-01:** ✅ Concluída (Setup inicial)
-- **Nenhuma outra feature** precisa estar pronta antes
-
----
-
-## 📚 Referências
-
-- Domain Driven Design - Eric Evans
-- Implementing Domain-Driven Design - Vaughn Vernon
-- Hexagonal Architecture - Alistair Cockburn
+# Marcar Issue FEAT-02 como Done
+mcp_azure-devops-_UpdateWorkItem -id 68 -state "Done"
+```
 
 ---
 
-## 👤 Responsável
+## 📝 Notas Importantes
 
-- **Product Owner:** Alex Oliveira
-- **Tech Lead:** Alex Oliveira
-- **Desenvolvedor:** [A assinalar]
-
----
-
-**Documento criado em:** 12 de Março de 2026  
-**Próxima revisão:** Após implementação da FEAT-02
-
+1. **Fonte de Verdade**: Este plano é **100% baseado em Azure DevOps Issue 68**
+2. **Sem Especulação**: Cada task corresponde exatamente ao que foi definido no MCP
+3. **Rastreabilidade**: Cada task tem ID Azure DevOps referenciado
+4. **Commits Automatizados**: Marcar tasks Done após push bem-sucedido
+5. **Review**: Antes de marcar Done, validar aceitação criteria completado

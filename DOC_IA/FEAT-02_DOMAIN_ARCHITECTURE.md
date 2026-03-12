@@ -1,539 +1,486 @@
-# 🏗️ Arquitetura da Camada de Domínio - FEAT-02
+# FEAT-02 | Arquitetura Domain Layer
 
-**Data:** 12 de Março de 2026  
-**Feature:** FEAT-02 | Camada de Domínio  
-
----
-
-## 📊 Arquitetura Geral
-
-```
-HEXAGONAL ARCHITECTURE
-┌────────────────────────────────────────────────────┐
-│                    Controllers                      │  ← Driving Adapters
-│                  (REST API, gRPC)                   │
-└──────────────────────┬─────────────────────────────┘
-                       │ HTTP/REST
-┌──────────────────────▼─────────────────────────────┐
-│              Application Layer                      │  ← Use Cases
-│          (Services, Commands, Queries)              │     & Business Logic
-└──────────────────────┬─────────────────────────────┘
-                       │ Calls
-┌──────────────────────▼─────────────────────────────┐
-│            DOMAIN LAYER (DDD)                       │  ← Domain Rules
-│        (Entities, Aggregates, Value Objects)       │     & Invariants
-│         Ports (Interfaces, Contracts)              │
-└──────────────────────┬─────────────────────────────┘
-                       │ Uses
-┌──────────────────────▼─────────────────────────────┐
-│           Infrastructure Layer                      │  ← Driven Adapters
-│    (Database, APIs, File System, Events)           │
-└────────────────────────────────────────────────────┘
-```
+**Data**: 12 de Março de 2026  
+**Feature**: FEAT-02 | Domain Layer  
+**Documentação de**: Arquitetura de Domínio  
+**Baseado em**: Azure DevOps Issue 68 (6 tasks reais)  
 
 ---
 
-## 🎯 Bounded Contexts
-
-### Order Context (Contexto Principal)
-Responsável por toda a lógica de pedidos
+## 📐 Arquitetura Geral da Solução
 
 ```
-OrderAggregate
-├── Order (Aggregate Root)
-│   ├── OrderId (Value Object)
-│   ├── OrderNumber (Value Object)
-│   ├── CustomerId (Value Object)
-│   ├── OrderStatus (Value Object)
-│   ├── Items (Collection<OrderItem>)
-│   ├── TotalAmount (Money)
-│   └── Timestamps
-├── OrderItem (Entity)
-│   ├── OrderItemId
-│   ├── ProductId
-│   ├── Quantity
-│   └── UnitPrice (Money)
-└── Ports
-    ├── IOrderRepository
-    └── IOrderEventPublisher
-```
-
-### Product Context
-Responsável pela gestão de produtos
-
-```
-ProductAggregate
-├── Product (Aggregate Root)
-│   ├── ProductId
-│   ├── Sku (ProductSku - Value Object)
-│   ├── Name
-│   ├── Description
-│   ├── Price (Money)
-│   └── Stock (Quantity - Value Object)
-└── Ports
-    └── IProductRepository
-```
-
-### Customer Context
-Responsável pela gestão de clientes
-
-```
-CustomerAggregate
-├── Customer (Aggregate Root)
-│   ├── CustomerId
-│   ├── Name
-│   ├── Email (Email - Value Object)
-│   ├── PhoneNumber
-│   └── Address (Address - Value Object)
-└── Ports
-    └── ICustomerRepository
+┌─────────────────────────────────────────────────────────────┐
+│                    ORDENAÇÃO HEXAGONAL                      │
+├─────────────────────────────────────────────────────────────┤
+│                                                               │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │              PRESENTATION LAYER (API)                │   │
+│  │         HTTP Controllers / REST Endpoints            │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                           ▲                                   │
+│                           │ Adapters                          │
+│                           ▼                                   │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │          APPLICATION LAYER (Use Cases)               │   │
+│  │     Services / CQRS / Command Handlers              │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                           ▲                                   │
+│                           │ Uses                              │
+│                           ▼                                   │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │          🎯 DOMAIN LAYER (FEAT-02) 🎯                │   │
+│  │  ├─ Aggregates (Order, OrderItem)                    │   │
+│  │  ├─ Value Objects (OrderAmount, OrderStatus, etc)   │   │
+│  │  ├─ Entities (OrderItem)                             │   │
+│  │  ├─ Ports (IOrderRepository, etc)                   │   │
+│  │  ├─ Exceptions (DomainException)                     │   │
+│  │  ├─ Domain Events                                    │   │
+│  │  └─ Business Rules (Encapsulated)                    │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                           ▲                                   │
+│                           │ Implementations                   │
+│                           ▼                                   │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │       INFRASTRUCTURE LAYER (Database, APIs)          │   │
+│  │     Repositories / External Services / DB Context    │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                                                               │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🗂️ Estrutura de Pastas
+## 🎯 Estrutura da Domain Layer / FEAT-02
 
 ```
 src/OrderHub.Domain/
+├── Aggregates/
+│   └── Order/
+│       ├── Order.cs                 # Aggregate Root
+│       ├── OrderItem.cs             # Entity dentro do agregado
+│       └── OrderStatus.cs           # Value Object - Estados
 │
-├── Aggregates/                          # Agregados
-│   │
-│   ├── Order/
-│   │   ├── Order.cs                     # Aggregate Root
-│   │   ├── OrderItem.cs                 # Entity
-│   │   ├── OrderStatus.cs               # Value Object (Enum)
-│   │   └── OrderId.cs                   # Value Object
-│   │
-│   ├── Product/
-│   │   ├── Product.cs                   # Aggregate Root
-│   │   ├── ProductSku.cs                # Value Object
-│   │   ├── Stock.cs                     # Value Object
-│   │   └── ProductId.cs                 # Value Object
-│   │
-│   └── Customer/
-│       ├── Customer.cs                  # Aggregate Root
-│       ├── CustomerId.cs                # Value Object
-│       └── (outros value objects)
+├── ValueObjects/
+│   ├── OrderAmount.cs               # Dinheiro representando totais
+│   ├── OrderId.cs                   # Identidade do pedido
+│   ├── CustomerId.cs                # Referência a customer
+│   └── Money.cs                     # Genérico para monetário
 │
-├── ValueObjects/                        # Value Objects Compartilhados
-│   ├── Money.cs                         # Valor monetário
-│   ├── Email.cs                         # Email com validação
-│   ├── PhoneNumber.cs                   # Telefone com validação
-│   └── Address.cs                       # Endereço
+├── Entities/
+│   └── (Entidades sem identidade própria)
 │
-├── Entities/                            # Entities Base
-│   ├── Entity.cs                        # Base para todas as entities
-│   └── AggregateRoot.cs                 # Base para Aggregate Roots
+├── Exceptions/
+│   ├── DomainException.cs           # Exceção base do domínio
+│   ├── InvalidOrderException.cs     # Ordem inválida
+│   └── InvalidOrderAmountException.cs # Valor inválido
 │
-├── Events/                              # Domain Events
-│   ├── IDomainEvent.cs                  # Interface base
-│   ├── DomainEventHandler.cs            # Handler base
-│   │
-│   └── Specific/
-│       ├── OrderCreatedEvent.cs
-│       ├── OrderStatusChangedEvent.cs
-│       ├── OrderItemAddedEvent.cs
-│       ├── CustomerCreatedEvent.cs
-│       └── ProductStockUpdatedEvent.cs
+├── Ports/
+│   ├── IOrderRepository.cs          # Contrato para persistência
+│   └── IOrderNotificationPort.cs    # Contrato para notificações
 │
-├── Ports/                               # Puertos (Interfaces/Contratos)
-│   │
-│   ├── Repositories/                    # Data Access Contracts
-│   │   ├── IRepository.cs               # Interface genérica
-│   │   ├── IOrderRepository.cs
-│   │   ├── IProductRepository.cs
-│   │   ├── ICustomerRepository.cs
-│   │   └── IUnitOfWork.cs               # Transações
-│   │
-│   ├── Services/                        # Application Services Contracts
-│   │   ├── INotificationService.cs
-│   │   ├── IEmailService.cs
-│   │   └── ISmsService.cs
-│   │
-│   └── Outgoing/                        # Event Publishing Contracts
-│       ├── IEventPublisher.cs
-│       └── IOrderEventPublisher.cs
+├── Events/
+│   ├── IDomainEvent.cs              # Interface base
+│   ├── OrderCreatedEvent.cs
+│   ├── OrderItemAddedEvent.cs
+│   └── OrderStatusChangedEvent.cs
 │
-├── Exceptions/                          # Exceções de Domínio
-│   ├── DomainException.cs               # Base
-│   ├── OrderNotFoundException.cs
-│   ├── InvalidOrderStatusException.cs
-│   ├── InsufficientStockException.cs
-│   └── InvalidEmailException.cs
-│
-├── Specifications/                      # DDD Specifications (Critério)
-│   └── OrderSpecification.cs
-│
-└── Constants/                           # Constantes de Domínio
+└── Constants/
     ├── OrderConstants.cs
-    ├── ProductConstants.cs
-    └── ValidationConstants.cs
+    └── ValidationMessages.cs
 ```
 
 ---
 
-## 🏛️ Diagrama de Classes - Order Aggregate
+## 📋 Padrões DDD Utilizados
 
-```
-┌──────────────────────────────────────────────┐
-│              AggregateRoot                   │
-│  (Base abstrata para raízes de agregados)    │
-├──────────────────────────────────────────────┤
-│ + Id: Guid                                   │
-│ + Version: int                               │
-│ + GetUncommittedEvents(): List<DomainEvent> │
-│ + ClearUncommittedEvents(): void            │
-└──────────────────────┬───────────────────────┘
-                       △
-                       │ Herda
-                       │
-┌──────────────────────▼───────────────────────┐
-│              <<Aggregate Root>>              │
-│                    Order                     │
-├──────────────────────────────────────────────┤
-│ - id: OrderId (Value Object)                │
-│ - orderNumber: string                       │
-│ - customerId: CustomerId (Value Object)     │
-│ - status: OrderStatus (Value Object)        │
-│ - items: List<OrderItem>                    │
-│ - totalAmount: Money (Value Object)         │
-│ - createdAt: DateTime                       │
-│ - updatedAt: DateTime?                      │
-├──────────────────────────────────────────────┤
-│ + CreateOrder(customerId, items): Order     │
-│ + AddItem(product, quantity): void          │
-│ + RemoveItem(itemId): void                  │
-│ + ChangeStatus(newStatus): void             │
-│ + CalculateTotalAmount(): Money             │
-│ + Validate(): Result                        │
-├──────────────────────────────────────────────┤
-│ Events:                                      │
-│ - OrderCreatedEvent                         │
-│ - OrderStatusChangedEvent                   │
-│ - OrderItemAddedEvent                       │
-│ - OrderItemRemovedEvent                     │
-└──────────────────────────────────────────────┘
-         △              △              △
-         │ Contains     │ Contains      │ References
-         │              │              │
-    ┌────┴──┐    ┌─────┴────┐    ┌────┴──────────┐
-    │        │    │          │    │               │
-┌───▼──┐  ┌─┴────▼──┐  ┌────▼─────┤ ┌──────────┐ │
-│Order │  │OrderItem│  │OrderStatus│ │CustomerId│ │
-│Item  │  │   (E)   │  │    (VO)    │ │   (VO)   │ │
-│ (E)  │  │         │  │ - Pending  │ └──────────┘ │
-│      │  │ - Id    │  │ - Confirmed│              │
-│ - Id │  │ - Qty   │  │ - Shipped  │   ┌────────┐ │
-│ - Qty│  │ - Price │  │ - Delivered│   │ Money  │ │
-│      │  │  (Money)│  │ - Cancelled│   │  (VO)  │ │
-└──────┘  │ - Amount│  └────────────┘   └────────┘ │
-          │  (Money)│
-          └─────────┘
-```
+### 1. **Aggregate Root: Order**
 
----
+O agregado `Order` encapsula toda lógica relacionada a pedidos. Só pode ser acessado através da raiz.
 
-## 💾 Padrão Repository
-
-```csharp
-// Porta (Interface) - No Domain
-public interface IOrderRepository
-{
-    Task<Order> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
-    Task<Order?> GetByNumberAsync(string orderNumber, CancellationToken cancellationToken = default);
-    Task<IEnumerable<Order>> GetByCustomerIdAsync(Guid customerId, CancellationToken cancellationToken = default);
-    Task AddAsync(Order order, CancellationToken cancellationToken = default);
-    Task UpdateAsync(Order order, CancellationToken cancellationToken = default);
-    Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
-}
-
-// Adaptador (Implementação) - Na Infraestrutura
-public class OrderRepository : IOrderRepository
-{
-    private readonly OrderHubDbContext _context;
-    
-    public async Task<Order> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
-    {
-        // Implementação usando Entity Framework
-        return await _context.Orders.FindAsync(new object[] { id }, cancellationToken: cancellationToken);
-    }
-    
-    // ... outras implementações
-}
-```
-
----
-
-## 🎭 Exemplo de Aggregate Root
+**Responsabilidades**:
+- Manter invariantes de negócio
+- Validar regras antes de estado mudar
+- Disparar domain events quando necessário
+- Expor apenas métodos com intenção clara
 
 ```csharp
 public class Order : AggregateRoot
 {
-    // Identidade
-    public OrderId Id { get; }
-    public string OrderNumber { get; private set; }
-    
-    // Referências
+    public OrderId OrderId { get; private set; }
     public CustomerId CustomerId { get; private set; }
-    
-    // Status e Dados
+    public DateTime OrderDate { get; private set; }
     public OrderStatus Status { get; private set; }
     public List<OrderItem> Items { get; private set; } = new();
-    public Money TotalAmount { get; private set; }
     
-    // Timestamps
-    public DateTime CreatedAt { get; private set; }
-    public DateTime? UpdatedAt { get; private set; }
-    
-    // Invariantes (Regras de Negócio)
-    private const int MinimumItems = 1;
-    private const int MaximumItems = 100;
-    
-    // Construtor privado (Factory)
-    private Order() { }
-    
-    // Factory Method
-    public static Result<Order> Create(CustomerId customerId, List<OrderItem> items)
-    {
-        // Validações
-        if (items == null || items.Count < MinimumItems)
-            return Result.Failure<Order>("Ordem deve ter pelo menos um item");
-        
-        if (items.Count > MaximumItems)
-            return Result.Failure<Order>("Ordem não pode ter mais de 100 itens");
-        
-        // Criação
-        var order = new Order
-        {
-            Id = OrderId.Create(Guid.NewGuid()),
-            OrderNumber = GenerateOrderNumber(),
-            CustomerId = customerId,
-            Status = OrderStatus.Pending,
-            Items = items,
-            CreatedAt = DateTime.UtcNow,
-        };
-        
-        // Domain Event
-        order.RaiseDomainEvent(new OrderCreatedEvent(
-            order.Id, 
-            order.CustomerId, 
-            order.CreatedAt
-        ));
-        
-        return Result.Success(order);
-    }
-    
-    // Métodos de Negócio
-    public Result AddItem(OrderItem item)
-    {
-        if (Status != OrderStatus.Pending)
-            return Result.Failure("Não é possível adicionar itens a uma ordem não-pendente");
-        
-        if (Items.Count >= MaximumItems)
-            return Result.Failure("Ordem atingiu limite de itens");
-        
-        Items.Add(item);
-        
-        // Atualizar total
-        RecalculateTotalAmount();
-        
-        // Domain Event
-        RaiseDomainEvent(new OrderItemAddedEvent(Id, item.Id, item.UnitPrice));
-        
-        return Result.Success();
-    }
-    
-    public Result ChangeStatus(OrderStatus newStatus)
-    {
-        // Validar transição de estado
-        if (!IsValidStatusTransition(Status, newStatus))
-            return Result.Failure($"Transição inválida de {Status} para {newStatus}");
-        
-        Status = newStatus;
-        UpdatedAt = DateTime.UtcNow;
-        
-        // Domain Event
-        RaiseDomainEvent(new OrderStatusChangedEvent(Id, Status, DateTime.UtcNow));
-        
-        return Result.Success();
-    }
-    
-    private void RecalculateTotalAmount()
-    {
-        var total = Items
-            .Select(i => i.UnitPrice * i.Quantity)
-            .Aggregate(Money.Zero(), (acc, amt) => acc + amt);
-        
-        TotalAmount = total;
-    }
-    
-    private static string GenerateOrderNumber()
-        => $"ORD-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString()[..8].ToUpper()}";
-    
-    private static bool IsValidStatusTransition(OrderStatus current, OrderStatus next)
-        => (current, next) switch
-        {
-            (OrderStatus.Pending, OrderStatus.Confirmed) => true,
-            (OrderStatus.Pending, OrderStatus.Cancelled) => true,
-            (OrderStatus.Confirmed, OrderStatus.Shipped) => true,
-            (OrderStatus.Confirmed, OrderStatus.Cancelled) => true,
-            (OrderStatus.Shipped, OrderStatus.Delivered) => true,
-            _ => false
-        };
-}
-```
-
----
-
-## 💡 Value Objects - Exemplos
-
-### Money (Valor Monetário)
-
-```csharp
-public class Money : ValueObject
-{
-    public decimal Amount { get; }
-    public string Currency { get; } = "BRL";
-    
-    private Money() { }
-    
-    public Money(decimal amount)
-    {
-        if (amount < 0)
-            throw new InvalidOperationException("Valor não pode ser negativo");
-        
-        Amount = amount;
-    }
-    
-    public static Money Zero() => new(0);
-    
-    public static Money operator +(Money a, Money b) => new(a.Amount + b.Amount);
-    public static Money operator -(Money a, Money b) => new(a.Amount - b.Amount);
-    public static Money operator *(Money money, int quantity) => new(money.Amount * quantity);
-    
-    public override bool Equals(object obj) => obj is Money money && Money.Amount == money.Amount;
-    public override int GetHashCode() => Amount.GetHashCode();
-}
-```
-
-### Email (Email com Validação)
-
-```csharp
-public class Email : ValueObject
-{
-    public string Value { get; }
-    
-    private Email() { }
-    
-    public Email(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value) || !IsValidEmail(value))
-            throw new InvalidOperationException("Email inválido");
-        
-        Value = value.ToLower();
-    }
-    
-    private static bool IsValidEmail(string email)
-        => Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$");
-    
-    public override bool Equals(object obj) => obj is Email email && Value == email.Value;
-    public override int GetHashCode() => Value.GetHashCode();
-}
-```
-
----
-
-## 🔄 Domain Events
-
-```csharp
-// Evento Base
-public abstract class DomainEvent
-{
-    public Guid AggregateId { get; protected set; }
-    public DateTime OccurredAt { get; protected set; } = DateTime.UtcNow;
-    public int Version { get; protected set; } = 1;
-}
-
-// Evento Específico
-public class OrderCreatedEvent : DomainEvent
-{
-    public OrderId OrderId { get; }
-    public CustomerId CustomerId { get; }
-    public DateTime CreatedAt { get; }
-    
-    public OrderCreatedEvent(OrderId orderId, CustomerId customerId, DateTime createdAt)
+    // Private construtor - usar factory method
+    private Order(OrderId orderId, CustomerId customerId)
     {
         OrderId = orderId;
         CustomerId = customerId;
-        CreatedAt = createdAt;
-        AggregateId = orderId.Value;
+        OrderDate = DateTime.UtcNow;
+        Status = OrderStatus.Pending;
+    }
+    
+    // Factory method - Intenção clara
+    public static Order CreateOrder(OrderId orderId, CustomerId customerId)
+    {
+        DomainValidator.ThrowIfNull(orderId, "OrderId não pode ser nulo");
+        DomainValidator.ThrowIfNull(customerId, "CustomerId não pode ser nulo");
+        
+        return new Order(orderId, customerId);
+    }
+    
+    // Método com regra embutida
+    public void AddItem(OrderItem item)
+    {
+        if (Status == OrderStatus.Shipped)
+            throw new InvalidOrderException("Não é possível adicionar itens a um pedido enviado");
+        
+        if (Items.Count >= 10)
+            throw new InvalidOrderException("Número máximo de 10 itens atingido");
+        
+        Items.Add(item);
+    }
+}
+```
+
+### 2. **Value Objects: OrderAmount**
+
+Representa valores monetários com total imutabilidade.
+
+**Características**:
+- Sem identidade própria (comparado por valor)
+- Imutável (readonly em tudo)
+- Auto-validação na construção
+- Comportamento específico domínio
+
+```csharp
+public class OrderAmount : IEquatable<OrderAmount>
+{
+    public decimal Value { get; }
+    public string Currency { get; } = "BRL";
+    
+    private OrderAmount(decimal value, string currency = "BRL")
+    {
+        Value = value;
+        Currency = currency;
+    }
+    
+    public static OrderAmount Create(decimal value, string currency = "BRL")
+    {
+        if (value <= 0)
+            throw new InvalidOrderAmountException("Valor deve ser maior que zero");
+        
+        return new OrderAmount(value, currency);
+    }
+    
+    public bool Equals(OrderAmount other)
+    {
+        return other != null && 
+               Value == other.Value && 
+               Currency == other.Currency;
+    }
+    
+    public override string ToString() => $"{Currency} {Value:N2}";
+}
+```
+
+### 3. **Entidade: OrderItem**
+
+Entidade dentro do agregado Order. Tem identidade apenas no contexto do aggregado.
+
+```csharp
+public class OrderItem
+{
+    public OrderItemId OrderItemId { get; private set; }
+    public ProductId ProductId { get; private set; }
+    public OrderAmount UnitPrice { get; private set; }
+    public int Quantity { get; private set; }
+    
+    private OrderItem() { }
+    
+    public OrderItem(OrderItemId id, ProductId productId, OrderAmount unitPrice, int quantity)
+    {
+        DomainValidator.ThrowIfNull(productId, "ProductId não pode ser nulo");
+        DomainValidator.ThrowIfNegativeOrZero(quantity, "Quantidade deve ser > 0");
+        
+        OrderItemId = id;
+        ProductId = productId;
+        UnitPrice = unitPrice;
+        Quantity = quantity;
+    }
+    
+    public OrderAmount GetTotal() => 
+        OrderAmount.Create(UnitPrice.Value * Quantity);
+}
+```
+
+### 4. **Exceções de Domínio**
+
+Exceções específicas do negócio, não técnicas.
+
+```csharp
+public class DomainException : Exception
+{
+    public DomainException(string message) : base(message) { }
+}
+
+public class InvalidOrderException : DomainException
+{
+    public InvalidOrderException(string message) : base(message) { }
+}
+
+public class InvalidOrderAmountException : DomainException
+{
+    public InvalidOrderAmountException(string message) : base(message) { }
+}
+```
+
+### 5. **Validador de Domínio**
+
+Centraliza validações comuns.
+
+```csharp
+public static class DomainValidator
+{
+    public static void ThrowIfNull(object value, string message)
+    {
+        if (value == null)
+            throw new DomainException(message);
+    }
+    
+    public static void ThrowIfNegativeOrZero(decimal value, string message)
+    {
+        if (value <= 0)
+            throw new DomainException(message);
+    }
+    
+    public static void ThrowIfEmpty(string value, string message)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            throw new DomainException(message);
     }
 }
 ```
 
 ---
 
-## 📋 Fluxo de Desenvolvimento
+## 🎭 Regras de Negócio Codificadas
 
+As seguintes **regras de negócio** serão enforced no código e **impossíveis de violar**:
+
+### R1: Não adicionar itens a pedido enviado
+```csharp
+public void AddItem(OrderItem item)
+{
+    if (Status == OrderStatus.Shipped)
+        throw new InvalidOrderException(
+            "Não é possível adicionar itens a um pedido enviado");
+}
 ```
-1. Criar estrutura de pastas
-   └─ mkdir -p OrderHub.Domain/...
 
-2. Implementar Value Objects
-   ├─ Money
-   ├─ Email
-   ├─ PhoneNumber
-   └─ Address
+### R2: Mínimo 1 item no pedido
+```csharp
+public static Order CreateOrder(OrderId orderId, CustomerId customerId)
+{
+    // Validação na factory
+    // Items.Count >= 1 garantido após criação
+}
+```
 
-3. Implementar Entities
-   ├─ Order
-   ├─ OrderItem
-   ├─ Customer
-   └─ Product
+### R3: Não remover único item
+```csharp
+public void RemoveItem(OrderItem item)
+{
+    if (Items.Count == 1)
+        throw new InvalidOrderException(
+            "Não é possível remover o último item do pedido");
+}
+```
 
-4. Implementar Aggregates Roots
-   ├─ Order (com Order Items)
-   ├─ Customer
-   └─ Product
+### R4: Remover único item → Cancela pedido
+```csharp
+public void RemoveItem(OrderItem item)
+{
+    var itemToRemove = Items.FirstOrDefault(x => x.OrderItemId == item.OrderItemId);
+    
+    if (Items.Count == 1 && itemToRemove != null)
+    {
+        Items.Remove(itemToRemove);
+        Status = OrderStatus.Cancelled;
+        RaiseDomainEvent(new OrderCancelledEvent(OrderId));
+    }
+    else if (itemToRemove != null)
+    {
+        Items.Remove(itemToRemove);
+    }
+}
+```
 
-5. Definir Ports (Interfaces)
-   ├─ IOrderRepository
-   ├─ ICustomerRepository
-   ├─ IProductRepository
-   └─ IEventPublisher
+### R5: Máximo 10 itens distintos
+```csharp
+public void AddItem(OrderItem item)
+{
+    if (Items.Count >= 10)
+        throw new InvalidOrderException(
+            "Número máximo de 10 itens atingido");
+}
+```
 
-6. Implementar Domain Events
-   ├─ OrderCreatedEvent
-   ├─ OrderStatusChangedEvent
-   └─ Outros...
+### R6: Transições válidas de Status
+```csharp
+public bool CanTransitionTo(OrderStatus newStatus)
+{
+    // Nueva → Pending → Processing → Shipped → Delivered
+    // Cancelled pode vir de qualquer estado
+    return newStatus switch
+    {
+        OrderStatus.Pending => Status == OrderStatus.Pending,
+        OrderStatus.Processing => Status == OrderStatus.Pending,
+        OrderStatus.Shipped => Status == OrderStatus.Processing,
+        OrderStatus.Delivered => Status == OrderStatus.Shipped,
+        OrderStatus.Cancelled => true,
+        _ => false
+    };
+}
 
-7. Adicionar Testes Unitários
-   ├─ OrderAggregateTests
-   ├─ MoneyTests
-   ├─ EmailTests
-   └─ Outros...
-
-8. Code Review & Refactoring
-   └─ Qualidade de Código
+public void ChangeStatus(OrderStatus newStatus)
+{
+    if (!CanTransitionTo(newStatus))
+        throw new InvalidOrderException(
+            $"Transição de {Status} para {newStatus} não permitida");
+    
+    Status = newStatus;
+    RaiseDomainEvent(new OrderStatusChangedEvent(OrderId, newStatus));
+}
 ```
 
 ---
 
-## ✅ Critérios de Aceitação da Feature
+## 🧪 Estratégia de Testes
 
-- [ ] Projeto OrderHub.Domain criado com sucesso
-- [ ] Todos os Aggregates implementados
-- [ ] Todas as Value Objects criadas
-- [ ] Domain Events implementados
-- [ ] Ports (Interfaces) definidas
-- [ ] 80%+ test coverage
-- [ ] Sem dependências não-desejadas
-- [ ] Documentação completa
-- [ ] Code Review aprovado
-- [ ] Mergeado em develop
-- [ ] Build pipeline passando
+### Pirâmide de Testes
+```
+        ▲
+       / \
+      /   \ - E2E (API/Integração)  ~5%
+     /-----\
+    /       \ - Integration Tests    ~15%
+   /         \
+  /-----------\ - Unit Tests (Domínio) ~80%
+ /             \
+```
+
+### Testes Unitários do Domínio
+- **Sem dependências externas** (sem banco, APIs, etc)
+- **Rápidos** (nanosegundos a milisegundos)
+- **Determinísticos** (sempre mesmo resultado)
+- **Fáceis de entender** (nome descreve cenário)
+
+Exemplo:
+```csharp
+[Fact]
+public void AddItem_ToShippedOrder_ThrowsException()
+{
+    // Arrange
+    var order = Order.CreateOrder(new OrderId(Guid.NewGuid()), new CustomerId(Guid.NewGuid()));
+    order.ChangeStatus(OrderStatus.Shipped);
+    var item = new OrderItem(...);
+    
+    // Act & Assert
+    Assert.Throws<InvalidOrderException>(() => order.AddItem(item));
+}
+```
 
 ---
 
-**Documento criado em:** 12 de Março de 2026  
-**Status:** 📝 Planejamento para Implementação
+## 📦 Dependências Externas
+
+**Domain Layer NÃO deve ter**:
+- ❌ Referências a `Infrastructure`
+- ❌ Referências a `Application`
+- ❌ Referências a `Presentation`
+- ❌ Dependências externas (NuGet packages)
+
+**Pode ter**:
+- ✅ `System.*` (core .NET)
+
+**Por quê?**:
+- Domínio é core, não deve depender de camadas externas
+- Fácil testar sem mocks complexos
+- Reusável em diferentes contextos
+
+---
+
+## 🔌 Ports (Interfaces)
+
+Contracts que serão implementados por Infrastructure.
+
+```csharp
+// Namespace: OrderHub.Domain.Ports
+
+public interface IOrderRepository
+{
+    Task<Order> GetByIdAsync(OrderId id, CancellationToken cancellationToken);
+    Task SaveAsync(Order order, CancellationToken cancellationToken);
+    Task DeleteAsync(OrderId id, CancellationToken cancellationToken);
+}
+
+public interface IOrderNotificationPort
+{
+    Task NotifyOrderStatusChangedAsync(Order order, OrderStatus newStatus);
+    Task NotifyOrderCreatedAsync(Order order);
+}
+```
+
+---
+
+## 📡 Domain Events
+
+Eventos disparados quando eventos importantes ocorrem.
+
+```csharp
+public interface IDomainEvent
+{
+    OrderId OrderId { get; }
+    DateTime OccurredAt { get; }
+}
+
+public class OrderCreatedEvent : IDomainEvent
+{
+    public OrderId OrderId { get; }
+    public CustomerId CustomerId { get; }
+    public DateTime OccurredAt { get; }
+    
+    public OrderCreatedEvent(OrderId orderId, CustomerId customerId)
+    {
+        OrderId = orderId;
+        CustomerId = customerId;
+        OccurredAt = DateTime.UtcNow;
+    }
+}
+```
+
+---
+
+## 🏗️ Ao Completar FEAT-02
+
+Após completar todas as 6 tasks, a Domain Layer será:
+
+✅ **Completa**: Todos agregados, VOs e ports criados  
+✅ **Testada**: 80%+ cobertura de testes  
+✅ **Documentada**: Código auto-explicativo e comentado  
+✅ **Pronta para Integração**: Application Layer pode usar  
+✅ **Sem Dependências Externas**: Isolada do resto  
+
+---
+
+## 🚀 Próximo Valor
+
+Uma vez FEAT-02 completado, FEAT-03 (Application Layer) pode:
+- Usar agregados e value objects
+- Implementar use cases
+- Ler eventos de domínio
+- Coordenar com Infrastructure
+
