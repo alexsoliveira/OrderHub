@@ -36,7 +36,7 @@ public class OrdersController : ControllerBase
     /// <returns>Pedido criado</returns>
     [HttpPost]
     public async Task<IActionResult> CreateOrderAsync(
-        [FromBody] CreateOrderRequest request,
+        [FromBody] ApiModels.CreateOrderRequest request,
         CancellationToken cancellationToken = default)
     {
         if (request == null)
@@ -44,7 +44,9 @@ public class OrdersController : ControllerBase
 
         try
         {
-            var response = await _createOrderUseCase.ExecuteAsync(request, cancellationToken);
+            // Map API request DTO to Application DTO
+            var appRequest = MapToApplicationCreateOrderRequest(request);
+            var response = await _createOrderUseCase.ExecuteAsync(appRequest, cancellationToken);
             
             var orderResponse = MapToOrderResponse(response);
             
@@ -120,7 +122,7 @@ public class OrdersController : ControllerBase
     [HttpPut("{orderId}")]
     public async Task<IActionResult> UpdateOrderAsync(
         [FromRoute] string orderId,
-        [FromBody] UpdateOrderRequest request,
+        [FromBody] ApiModels.UpdateOrderRequest request,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(orderId))
@@ -165,6 +167,25 @@ public class OrdersController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, 
                 new { error = "Erro ao deletar pedido", details = ex.Message });
         }
+    }
+
+    /// <summary>
+    /// Mapeia CreateOrderRequest (API) para CreateOrderRequest (Application)
+    /// </summary>
+    private static AppDtos.CreateOrderRequest MapToApplicationCreateOrderRequest(
+        ApiModels.CreateOrderRequest apiRequest)
+    {
+        return new AppDtos.CreateOrderRequest
+        {
+            CustomerId = apiRequest.CustomerId,
+            Description = apiRequest.Description,
+            Items = apiRequest.Items?.Select(item => new AppDtos.OrderItemRequest
+            {
+                ProductId = item.ProductId,
+                Quantity = item.Quantity,
+                UnitPrice = item.UnitPrice
+            }).ToList() ?? new List<AppDtos.OrderItemRequest>()
+        };
     }
 
     /// <summary>
