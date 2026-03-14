@@ -1,10 +1,14 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/OrderHub.Adapters.Inbound.Api/OrderHub.Adapters.Inbound.Api.csproj" />
+    <Project Path="src/OrderHub.Adapters.Outbound.Persistence/OrderHub.Adapters.Outbound.Persistence.csproj" />
     <Project Path="src/OrderHub.Application/OrderHub.Application.csproj" />
     <Project Path="src/OrderHub.Domain/OrderHub.Domain.csproj" />
+    <Project Path="src/OrderHub.Infrastructure/OrderHub.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/OrderHub.Api.IntegrationTests/OrderHub.Api.IntegrationTests.csproj" />
     <Project Path="tests/OrderHub.Domain.Tests/OrderHub.Domain.Tests.csproj" />
+    <Project Path="tests/OrderHub.UnitTests/OrderHub.UnitTests.csproj" />
   </Folder>
 </Solution>
