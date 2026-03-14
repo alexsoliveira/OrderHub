@@ -16,18 +16,17 @@ namespace OrderHub.Infrastructure.DependencyInjection
         /// <returns>Coleção de serviços para encadeamento</returns>
         public static IServiceCollection AddApplicationServices(this IServiceCollection services)
         {
-            // Registrar Use Cases/Application Services com padrão Scoped
-            // Cada requisição HTTP terá sua própria instância do serviço
+            // Registrar Use Cases com suas Input Port interfaces
+            // Padrão: services.AddScoped<IInterface, ConcreteImplementation>();
+            // Cada requisição HTTP terá sua própria instância do serviço (Scoped lifetime)
+            // Isso implementa o princípio de Inversão de Dependência (IoC) da arquitetura hexagonal
             
-            // Serviços de Ordem (Order Services)
-            services.AddScoped<CreateOrderService>();
-            services.AddScoped<GetOrderService>();
-            services.AddScoped<UpdateOrderService>();
-            services.AddScoped<CancelOrderService>();
-            
-            // TODO: Registrar Use Cases adicionais conforme forem implementados
-            // services.AddScoped<IDeleteOrderUseCase, DeleteOrderUseCase>();
-            // services.AddScoped<IListOrdersUseCase, ListOrdersUseCase>();
+            // Registrar Use Cases de Ordem (Order Use Cases)
+            // Controllers injetam as interfaces, não os tipos concretos
+            services.AddScoped<ICreateOrderUseCase, CreateOrderService>();
+            services.AddScoped<IGetOrderUseCase, GetOrderService>();
+            services.AddScoped<IUpdateOrderUseCase, UpdateOrderService>();
+            services.AddScoped<ICancelOrderUseCase, CancelOrderService>();
             
             return services;
         }

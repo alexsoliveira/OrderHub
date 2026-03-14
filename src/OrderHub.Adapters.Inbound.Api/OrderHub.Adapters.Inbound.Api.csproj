@@ -12,13 +12,16 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+    <!-- Swashbuckle temporarily removed due to compatibility issues with .NET 10 -->
+    <!-- TODO: Upgrade Swashbuckle to .NET 10 compatible version -->
+    <!-- <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" /> -->
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\OrderHub.Domain\OrderHub.Domain.csproj" />
     <ProjectReference Include="..\OrderHub.Application\OrderHub.Application.csproj" />
     <ProjectReference Include="..\OrderHub.Adapters.Outbound.Persistence\OrderHub.Adapters.Outbound.Persistence.csproj" />
+    <ProjectReference Include="..\OrderHub.Infrastructure\OrderHub.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

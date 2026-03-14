@@ -20,13 +20,17 @@ namespace OrderHub.Infrastructure.DependencyInjection
             this IServiceCollection services, 
             IConfiguration configuration)
         {
-            // Registrar serviços de aplicação (Use Cases)
+            // Registrar serviços de aplicação (Use Cases / Input Ports)
             // Chamado através da extensão em ApplicationServiceExtensions
             ApplicationServiceExtensions.AddApplicationServices(services);
             
-            // Registrar repositórios (Output Ports)
+            // Registrar repositórios e Unit of Work (Output Ports)
             // Chamado através da extensão em RepositoryServiceExtensions
             RepositoryServiceExtensions.AddRepositories(services);
+            
+            // Registrar serviços de infraestrutura (Notificações, etc)
+            // Chamado através da extensão em InfrastructureServiceExtensions
+            InfrastructureServiceExtensions.AddInfrastructureServices(services);
             
             // Configurar banco de dados
             ConfigurePersistence(services, configuration);

@@ -1,5 +1,6 @@
 using OrderHub.Application.DTOs;
 using OrderHub.Application.Ports;
+using OrderHub.Application.UseCases;
 using OrderHub.Domain.Aggregates.Order;
 using OrderHub.Domain.ValueObjects;
 
@@ -7,8 +8,9 @@ namespace OrderHub.Application.UseCases.Orders;
 
 /// <summary>
 /// Application Service para atualizar um pedido existente
+/// Implementa IUpdateOrderUseCase (Input Port) da arquitetura hexagonal
 /// </summary>
-public class UpdateOrderService
+public class UpdateOrderService : IUpdateOrderUseCase
 {
     private readonly IUnitOfWork _unitOfWork;
 

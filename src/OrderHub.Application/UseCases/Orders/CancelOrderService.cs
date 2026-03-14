@@ -1,12 +1,14 @@
 using OrderHub.Application.Ports;
+using OrderHub.Application.UseCases;
 using OrderHub.Domain.ValueObjects;
 
 namespace OrderHub.Application.UseCases.Orders;
 
 /// <summary>
 /// Application Service para cancelar um pedido existente
+/// Implementa ICancelOrderUseCase (Input Port) da arquitetura hexagonal
 /// </summary>
-public class CancelOrderService
+public class CancelOrderService : ICancelOrderUseCase
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly INotificationPort _notification;

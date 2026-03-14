@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using OrderHub.Adapters.Outbound.Persistence;
 using OrderHub.Adapters.Outbound.Persistence.Repositories;
 using OrderHub.Application.Ports;
 
@@ -16,8 +17,11 @@ namespace OrderHub.Infrastructure.DependencyInjection
         /// <returns>Coleção de serviços para encadeamento</returns>
         public static IServiceCollection AddRepositories(this IServiceCollection services)
         {
-            // Registrar Repositories com padrão Scoped
-            // Cada requisição HTTP terá sua própria instância do repositório
+            // Registrar Repositories e Output Ports com padrão Scoped
+            // Cada requisição HTTP terá sua própria instância
+            
+            // Unit of Work Pattern - Coordena transações e repositórios
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
             
             // Repositório de Pedidos (Order Repository)
             // Implementa a interface IOrderRepository (Output Port definida no Domain)

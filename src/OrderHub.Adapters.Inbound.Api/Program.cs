@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using OrderHub.Adapters.Outbound.Persistence;
+using OrderHub.Infrastructure.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,8 +18,9 @@ builder.Services.AddDbContext<OrderHubDbContext>(options =>
     )
 );
 
-// Add Swagger
-builder.Services.AddSwaggerGen();
+// Add Swagger (Temporarily commented due to compatibility issue with .NET 10)
+// TODO: Resolve Swashbuckle compatibility with .NET 10
+// builder.Services.AddSwaggerGen();
 
 // Add CORS
 builder.Services.AddCors(options =>
@@ -31,16 +33,20 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Add Infrastructure Services (DI Configuration for Use Cases, Repositories, Output Ports)
+builder.Services.AddInfrastructure(configuration);
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "OrderHub API v1");
-    });
+    // Swagger temporarily disabled due to compatibility issue with .NET 10
+    // app.UseSwagger();
+    // app.UseSwaggerUI(options =>
+    // {
+    //     options.SwaggerEndpoint("/swagger/v1/swagger.json", "OrderHub API v1");
+    // });
 }
 
 app.UseHttpsRedirection();

@@ -1,12 +1,14 @@
 using OrderHub.Application.DTOs;
 using OrderHub.Application.Ports;
+using OrderHub.Application.UseCases;
 
 namespace OrderHub.Application.UseCases.Orders;
 
 /// <summary>
 /// Application Service para recuperar um pedido existente
+/// Implementa IGetOrderUseCase (Input Port) da arquitetura hexagonal
 /// </summary>
-public class GetOrderService
+public class GetOrderService : IGetOrderUseCase
 {
     private readonly IOrderRepository _orderRepository;
 

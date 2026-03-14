@@ -1,5 +1,6 @@
 using OrderHub.Application.DTOs;
 using OrderHub.Application.Ports;
+using OrderHub.Application.UseCases;
 using OrderHub.Domain.Aggregates.Order;
 using OrderHub.Domain.ValueObjects;
 
@@ -8,8 +9,9 @@ namespace OrderHub.Application.UseCases.Orders;
 /// <summary>
 /// Application Service para criar um novo pedido
 /// Orquestra a criação, persistência e notificação de novo pedido
+/// Implementa ICreateOrderUseCase (Input Port) da arquitetura hexagonal
 /// </summary>
-public class CreateOrderService
+public class CreateOrderService : ICreateOrderUseCase
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly INotificationPort _notification;
