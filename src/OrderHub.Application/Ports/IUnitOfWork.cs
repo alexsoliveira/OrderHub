@@ -1,33 +1,16 @@
+using OrderHub.Domain.Ports;
+
 namespace OrderHub.Application.Ports;
 
 /// <summary>
-/// Port (Interface) para Unit of Work Pattern
-/// Gerencia transações e coordena múltiplos repositórios
+/// Application-level Port (Interface) para Unit of Work Pattern
+/// Estende Domain.Ports.IUnitOfWork e providencia repositórios tipados para a Application layer
 /// </summary>
-public interface IUnitOfWork : IAsyncDisposable
+public interface IUnitOfWork : Domain.Ports.IUnitOfWork
 {
     /// <summary>
-    /// Acesso ao repositório de pedidos
+    /// Acesso ao repositório de pedidos com métodos Application-layer (working com DTOs)
+    /// Sobrescreve a propriedade de Domain para retornar um tipo mais específico
     /// </summary>
-    IOrderRepository Orders { get; }
-
-    /// <summary>
-    /// Inicia uma nova transação
-    /// </summary>
-    Task BeginTransactionAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Confirma a transação e persiste todas as mudanças
-    /// </summary>
-    Task CommitAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Desfaz a transação (rollback) e descarta todas as mudanças
-    /// </summary>
-    Task RollbackAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Verifica se há uma transação ativa
-    /// </summary>
-    bool HasActiveTransaction { get; }
+    new IOrderRepository Orders { get; }
 }

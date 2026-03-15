@@ -7,12 +7,13 @@ namespace OrderHub.Adapters.Outbound.Persistence;
 /// <summary>
 /// Implementação do padrão Unit of Work usando Entity Framework Core
 /// Coordena transações e acesso a repositórios
+/// Implementa Application.Ports.IUnitOfWork que estende Domain.Ports.IUnitOfWork
 /// </summary>
 public class UnitOfWork : IUnitOfWork
 {
     private readonly OrderHubDbContext _context;
     private IDbContextTransaction? _transaction;
-    private IOrderRepository? _orderRepository;
+    private OrderRepository? _orderRepository;
 
     public UnitOfWork(OrderHubDbContext context)
     {
@@ -21,8 +22,22 @@ public class UnitOfWork : IUnitOfWork
 
     /// <summary>
     /// Repositório de pedidos (lazy loaded)
+    /// Retorna implementação que suporta ambas Application.Ports.IOrderRepository e Domain.Ports.IOrderRepository
     /// </summary>
-    public IOrderRepository Orders
+    Application.Ports.IOrderRepository IUnitOfWork.Orders
+    {
+        get
+        {
+            _orderRepository ??= new OrderRepository(_context);
+            return _orderRepository;
+        }
+    }
+
+    /// <summary>
+    /// Implementação para Domain.Ports.IUnitOfWork.Orders
+    /// Retorna o mesmo repositório
+    /// </summary>
+    Domain.Ports.IOrderRepository Domain.Ports.IUnitOfWork.Orders
     {
         get
         {

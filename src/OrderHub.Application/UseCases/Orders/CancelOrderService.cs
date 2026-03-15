@@ -43,8 +43,11 @@ public class CancelOrderService : ICancelOrderUseCase
             if (orderResponse == null)
                 throw new InvalidOperationException($"Pedido com ID '{orderId}' não encontrado");
 
+            // Converter string para ValueObject OrderId
+            var orderIdValueObject = OrderId.Create(Guid.Parse(orderId));
+            
             // Remover pedido (delete lógico ou físico conforme implementação do repositório)
-            await _unitOfWork.Orders.DeleteAsync(orderId, cancellationToken);
+            await _unitOfWork.Orders.DeleteAsync(orderIdValueObject, cancellationToken);
 
             // Confirmar transação
             await _unitOfWork.CommitAsync(cancellationToken);

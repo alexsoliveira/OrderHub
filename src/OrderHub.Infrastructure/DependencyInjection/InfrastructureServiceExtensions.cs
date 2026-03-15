@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using OrderHub.Application.Ports;
+using OrderHub.Domain.Ports;
 using OrderHub.Infrastructure.Services;
 
 namespace OrderHub.Infrastructure.DependencyInjection;
@@ -20,9 +21,14 @@ public static class InfrastructureServiceExtensions
         // Registrar Output Ports de Infraestrutura com padrão Scoped
         
         // Serviço de Notificações
-        // Implementa INotificationPort (Output Port definida no Application)
-        // Responsável por enviar notificações (email, SMS, push, etc)
-        services.AddScoped<INotificationPort, NotificationService>();
+        // Registra uma única instância que implementa ambas as interfaces
+        services.AddScoped<NotificationService>();
+        
+        // Mapeia NotificationService para as duas interfaces (Domain e Application)
+        services.AddScoped<Domain.Ports.INotificationPort>(provider =>
+            provider.GetRequiredService<NotificationService>());
+        services.AddScoped<Application.Ports.INotificationPort>(provider =>
+            provider.GetRequiredService<NotificationService>());
         
         // TODO: Registrar outros serviços conforme forem implementados
         // services.AddScoped<IPaymentPort, PaymentService>();
@@ -32,3 +38,5 @@ public static class InfrastructureServiceExtensions
         return services;
     }
 }
+
+

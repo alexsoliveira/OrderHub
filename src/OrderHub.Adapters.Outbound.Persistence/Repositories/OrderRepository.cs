@@ -3,6 +3,7 @@ using OrderHub.Application.DTOs;
 using OrderHub.Application.Ports;
 using OrderHub.Domain.Aggregates.Order;
 using OrderHub.Domain.Exceptions;
+using OrderHub.Domain.Ports;
 using OrderHub.Domain.ValueObjects;
 
 namespace OrderHub.Adapters.Outbound.Persistence.Repositories;
@@ -10,9 +11,9 @@ namespace OrderHub.Adapters.Outbound.Persistence.Repositories;
 /// <summary>
 /// Implementação do repositório de pedidos usando Entity Framework Core
 /// Fornece acesso a dados de Order através de patterns assíncronos
-/// Implementa a interface IOrderRepository (Port)
+/// Implementa as interfaces IOrderRepository (Application Port e Domain Port)
 /// </summary>
-public class OrderRepository : IOrderRepository
+public class OrderRepository : Application.Ports.IOrderRepository
 {
     private readonly OrderHubDbContext _context;
 
@@ -143,6 +144,74 @@ public class OrderRepository : IOrderRepository
         return await _context.Orders
             .AnyAsync(o => o.OrderId.Value == id, cancellationToken);
     }
+
+    #region Domain.Ports.IOrderRepository Implementation
+
+    /// <summary>
+    /// Implementação explícita para Domain Port: Recupera agregado Order usando ValueObject OrderId
+    /// </summary>
+    async Task<Order?> Domain.Ports.IOrderRepository.GetByIdAsync(OrderId orderId, CancellationToken cancellationToken)
+    {
+        if (orderId == null)
+            return null;
+
+        var order = await _context.Orders
+            .AsNoTracking()
+            .FirstOrDefaultAsync(o => o.OrderId.Value == orderId.Value, cancellationToken);
+
+        return order;
+    }
+
+    /// <summary>
+    /// Implementação explícita para Domain Port: Recupera agregados Order de um cliente
+    /// </summary>
+    async Task<List<Order>> Domain.Ports.IOrderRepository.GetByCustomerIdAsync(string customerId, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(customerId))
+            return new List<Order>();
+
+        if (!Guid.TryParse(customerId, out var id))
+            return new List<Order>();
+
+        var orders = await _context.Orders
+            .AsNoTracking()
+            .Where(o => o.CustomerId.Value == id)
+            .ToListAsync(cancellationToken);
+
+        return orders;
+    }
+
+    /// <summary>
+    /// Implementação explícita para Domain Port: Remove usando ValueObject OrderId
+    /// </summary>
+    async Task Domain.Ports.IOrderRepository.DeleteAsync(OrderId orderId, CancellationToken cancellationToken)
+    {
+        if (orderId == null)
+            throw new InvalidOrderException("OrderId não pode estar vazio");
+
+        var order = await _context.Orders
+            .FirstOrDefaultAsync(o => o.OrderId.Value == orderId.Value, cancellationToken);
+
+        if (order == null)
+            throw new InvalidOrderException($"Pedido com ID {orderId.Value} não encontrado");
+
+        _context.Orders.Remove(order);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Implementação explícita para Domain Port: Verifica existência usando ValueObject OrderId
+    /// </summary>
+    async Task<bool> Domain.Ports.IOrderRepository.ExistsAsync(OrderId orderId, CancellationToken cancellationToken)
+    {
+        if (orderId == null)
+            return false;
+
+        return await _context.Orders
+            .AnyAsync(o => o.OrderId.Value == orderId.Value, cancellationToken);
+    }
+
+    #endregion
 
     /// <summary>
     /// Mapeia entidade Order para DTO OrderResponse

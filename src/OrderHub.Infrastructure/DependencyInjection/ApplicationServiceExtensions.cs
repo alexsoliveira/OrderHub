@@ -27,6 +27,7 @@ namespace OrderHub.Infrastructure.DependencyInjection
             services.AddScoped<IGetOrderUseCase, GetOrderService>();
             services.AddScoped<IUpdateOrderUseCase, UpdateOrderService>();
             services.AddScoped<ICancelOrderUseCase, CancelOrderService>();
+            services.AddScoped<IListOrdersUseCase, ListOrdersService>();
             
             return services;
         }

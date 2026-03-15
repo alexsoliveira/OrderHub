@@ -12,9 +12,8 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <!-- Swashbuckle temporarily removed due to compatibility issues with .NET 10 -->
-    <!-- TODO: Upgrade Swashbuckle to .NET 10 compatible version -->
-    <!-- <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" /> -->
+    <!-- Swashbuckle upgraded to 6.6.0+ for .NET 10 compatibility -->
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.0" />
   </ItemGroup>
 
   <ItemGroup>

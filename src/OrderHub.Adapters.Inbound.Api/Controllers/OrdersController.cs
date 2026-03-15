@@ -16,16 +16,25 @@ public class OrdersController : ControllerBase
 {
     private readonly ICreateOrderUseCase _createOrderUseCase;
     private readonly IGetOrderUseCase _getOrderUseCase;
+    private readonly IUpdateOrderUseCase _updateOrderUseCase;
+    private readonly ICancelOrderUseCase _cancelOrderUseCase;
+    private readonly IListOrdersUseCase _listOrdersUseCase;
 
     /// <summary>
     /// Construtor do controller
     /// </summary>
     public OrdersController(
         ICreateOrderUseCase createOrderUseCase,
-        IGetOrderUseCase getOrderUseCase)
+        IGetOrderUseCase getOrderUseCase,
+        IUpdateOrderUseCase updateOrderUseCase,
+        ICancelOrderUseCase cancelOrderUseCase,
+        IListOrdersUseCase listOrdersUseCase)
     {
         _createOrderUseCase = createOrderUseCase ?? throw new ArgumentNullException(nameof(createOrderUseCase));
         _getOrderUseCase = getOrderUseCase ?? throw new ArgumentNullException(nameof(getOrderUseCase));
+        _updateOrderUseCase = updateOrderUseCase ?? throw new ArgumentNullException(nameof(updateOrderUseCase));
+        _cancelOrderUseCase = cancelOrderUseCase ?? throw new ArgumentNullException(nameof(cancelOrderUseCase));
+        _listOrdersUseCase = listOrdersUseCase ?? throw new ArgumentNullException(nameof(listOrdersUseCase));
     }
 
     /// <summary>
@@ -101,8 +110,8 @@ public class OrdersController : ControllerBase
     {
         try
         {
-            var orders = new List<ApiModels.OrderResponse>();
-            // TODO: Implementar quando houver IListOrdersUseCase
+            // Call use case to list all orders
+            var orders = await _listOrdersUseCase.ExecuteAsync(cancellationToken);
             return Ok(orders);
         }
         catch (Exception ex)
@@ -133,8 +142,35 @@ public class OrdersController : ControllerBase
 
         try
         {
-            // TODO: Implementar quando houver IUpdateOrderUseCase
-            return NotFound($"Pedido com ID {orderId} não encontrado");
+            // Map API request to Application DTO
+            var appRequest = new AppDtos.UpdateOrderRequest
+            {
+                OrderId = orderId,
+                Description = request.Description,
+                Items = request.Items?.Select(item => new AppDtos.OrderItemRequest
+                {
+                    ProductId = item.ProductId,
+                    Quantity = item.Quantity,
+                    UnitPrice = item.UnitPrice
+                }).ToList() ?? new List<AppDtos.OrderItemRequest>()
+            };
+
+            // Call use case
+            var response = await _updateOrderUseCase.ExecuteAsync(appRequest, cancellationToken);
+            
+            if (response == null)
+                return NotFound($"Pedido com ID {orderId} não encontrado");
+            
+            var orderResponse = MapToOrderResponse(response);
+            return Ok(orderResponse);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
         }
         catch (Exception ex)
         {
@@ -144,7 +180,7 @@ public class OrdersController : ControllerBase
     }
 
     /// <summary>
-    /// Deleta um pedido
+    /// Cancela um pedido (delete lógico)
     /// </summary>
     /// <param name="orderId">ID do pedido</param>
     /// <param name="cancellationToken">Token de cancelamento</param>
@@ -159,13 +195,23 @@ public class OrdersController : ControllerBase
 
         try
         {
-            // TODO: Implementar quando houver IDeleteOrderUseCase
-            return NotFound($"Pedido com ID {orderId} não encontrado");
+            // Call cancel order use case
+            await _cancelOrderUseCase.ExecuteAsync(orderId, "Cancelado via API", cancellationToken);
+            
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
         }
         catch (Exception ex)
         {
             return StatusCode(StatusCodes.Status500InternalServerError, 
-                new { error = "Erro ao deletar pedido", details = ex.Message });
+                new { error = "Erro ao cancelar pedido", details = ex.Message });
         }
     }
 

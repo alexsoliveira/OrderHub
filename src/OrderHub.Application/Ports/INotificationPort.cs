@@ -1,38 +1,13 @@
+using OrderHub.Domain.Ports;
+
 namespace OrderHub.Application.Ports;
 
 /// <summary>
-/// Port (Interface) para notificações
-/// Define o contrato para envio de notificações (emails, SMS, push, etc)
+/// Application-level Port (Interface) para notificações
+/// Reexporta Domain.Ports.INotificationPort que define o contrato para envio de notificações
 /// </summary>
-public interface INotificationPort
+public interface INotificationPort : Domain.Ports.INotificationPort
 {
-    /// <summary>
-    /// Envia confirmação de pedido criado para o cliente
-    /// </summary>
-    Task SendOrderConfirmationAsync(string customerId, string orderId, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Envia notificação de pedido aprovado
-    /// </summary>
-    Task SendOrderApprovedAsync(string customerId, string orderId, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Envia notificação de pedido enviado/despachado
-    /// </summary>
-    Task SendOrderShippedAsync(string customerId, string orderId, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Envia notificação de pedido entregue
-    /// </summary>
-    Task SendOrderDeliveredAsync(string customerId, string orderId, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Envia notificação de pedido cancelado
-    /// </summary>
-    Task SendOrderCancelledAsync(string customerId, string orderId, string reason, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Envia notificação customizada
-    /// </summary>
-    Task SendCustomNotificationAsync(string customerId, string subject, string message, CancellationToken cancellationToken = default);
+    // Reexporta o contrato de Domain.Ports.INotificationPort
+    // A implementação fornece notificações para a Application layer
 }

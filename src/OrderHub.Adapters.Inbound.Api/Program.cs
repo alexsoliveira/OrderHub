@@ -18,9 +18,8 @@ builder.Services.AddDbContext<OrderHubDbContext>(options =>
     )
 );
 
-// Add Swagger (Temporarily commented due to compatibility issue with .NET 10)
-// TODO: Resolve Swashbuckle compatibility with .NET 10
-// builder.Services.AddSwaggerGen();
+// Add Swagger
+builder.Services.AddSwaggerGen();
 
 // Add CORS
 builder.Services.AddCors(options =>
@@ -41,12 +40,11 @@ var app = builder.Build();
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
-    // Swagger temporarily disabled due to compatibility issue with .NET 10
-    // app.UseSwagger();
-    // app.UseSwaggerUI(options =>
-    // {
-    //     options.SwaggerEndpoint("/swagger/v1/swagger.json", "OrderHub API v1");
-    // });
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "OrderHub API v1");
+    });
 }
 
 app.UseHttpsRedirection();
