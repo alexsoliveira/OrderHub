@@ -1,6 +1,8 @@
 using OrderHub.Application.DTOs;
-using OrderHub.Application.Ports;
+using OrderHub.Application.Exceptions;
+using OrderHub.Domain.Ports;
 using OrderHub.Application.UseCases;
+using OrderHub.Domain.ValueObjects;
 
 namespace OrderHub.Application.UseCases.Orders;
 
@@ -14,7 +16,9 @@ public class GetOrderService : IGetOrderUseCase
 
     public GetOrderService(IOrderRepository orderRepository)
     {
-        _orderRepository = orderRepository ?? throw new ArgumentNullException(nameof(orderRepository));
+        if (orderRepository == null)
+            throw InvalidRequestException.CreateForNullField(nameof(orderRepository), "dependency injection failed");
+        _orderRepository = orderRepository;
     }
 
     /// <summary>
@@ -25,14 +29,20 @@ public class GetOrderService : IGetOrderUseCase
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(orderId))
-            throw new ArgumentException("OrderId é obrigatório", nameof(orderId));
+            throw InvalidRequestException.CreateForNullField(nameof(orderId));
 
-        var orderResponse = await _orderRepository.GetByIdAsync(orderId, cancellationToken);
+        // Converter string para OrderId Value Object
+        if (!Guid.TryParse(orderId, out var guidId))
+            throw new InvalidRequestException(nameof(orderId), "deve ser um GUID válido");
 
-        if (orderResponse == null)
-            throw new InvalidOperationException($"Pedido com ID '{orderId}' não encontrado");
+        var orderIdValueObject = OrderId.Create(guidId);
+        var order = await _orderRepository.GetByIdAsync(orderIdValueObject, cancellationToken);
 
-        return orderResponse;
+        if (order == null)
+            throw new OrderNotFoundException(orderId);
+
+        // Mapear Order (domínio) para OrderResponse (API)
+        return MapOrderToResponse(order);
     }
 
     /// <summary>
@@ -43,9 +53,36 @@ public class GetOrderService : IGetOrderUseCase
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(customerId))
-            throw new ArgumentException("CustomerId é obrigatório", nameof(customerId));
+            throw InvalidRequestException.CreateForNullField(nameof(customerId));
 
         var orders = await _orderRepository.GetByCustomerIdAsync(customerId, cancellationToken);
-        return orders;
+        return orders.Select(MapOrderToResponse).ToList();
+    }
+
+    /// <summary>
+    /// Mapeia agregado Order para DTO OrderResponse
+    /// </summary>
+    private static OrderResponse MapOrderToResponse(OrderHub.Domain.Aggregates.Order.Order order)
+    {
+        var items = order.Items.Select(i => new OrderItemResponse
+        {
+            ProductId = i.ProductId.Value.ToString(),
+            Quantity = i.Quantity,
+            UnitPrice = i.Amount.Value,
+            SubTotal = i.Amount.Value * i.Quantity
+        }).ToList();
+
+        var totalAmount = items.Sum(i => i.SubTotal);
+
+        return new OrderResponse
+        {
+            OrderId = order.OrderId.Value.ToString(),
+            CustomerId = order.CustomerId.Value.ToString(),
+            Status = order.Status.ToString(),
+            OrderDate = order.OrderDate,
+            Items = items,
+            TotalAmount = totalAmount,
+            Currency = "BRL"
+        };
     }
 }

@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using OrderHub.Adapters.Outbound.Persistence;
 using OrderHub.Adapters.Outbound.Persistence.Repositories;
-using OrderHub.Application.Ports;
 using OrderHub.Domain.Ports;
 
 namespace OrderHub.Infrastructure.DependencyInjection
@@ -22,16 +21,10 @@ namespace OrderHub.Infrastructure.DependencyInjection
             // Cada requisição HTTP terá sua própria instância
             
             // Unit of Work Pattern - Coordena transações e repositórios
-            // Registra tanto a interface da Application quanto da Domain
-            services.AddScoped<Domain.Ports.IUnitOfWork, UnitOfWork>();
-            services.AddScoped<Application.Ports.IUnitOfWork, UnitOfWork>();
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
             
             // Repositório de Pedidos (Order Repository)
-            // Implementa as interfaces IOrderRepository tanto da Application quanto da Domain
-            // A implementação suporta ambas as interfaces polimorficamente
-            services.AddScoped<Application.Ports.IOrderRepository, OrderRepository>();
-            services.AddScoped<Domain.Ports.IOrderRepository>(provider => 
-                provider.GetRequiredService<Application.Ports.IOrderRepository>());
+            services.AddScoped<IOrderRepository, OrderRepository>();
             
             // TODO: Registrar otros repositories conforme forem implementados
             // services.AddScoped<IOrderItemRepository, OrderItemRepository>();

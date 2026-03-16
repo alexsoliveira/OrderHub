@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using OrderHub.Adapters.Inbound.Api.Models;
 using OrderHub.Application.DTOs;
+using OrderHub.Application.Exceptions;
 using OrderHub.Application.UseCases;
 using ApiModels = OrderHub.Adapters.Inbound.Api.Models;
 using AppDtos = OrderHub.Application.DTOs;
+using ApplicationException = OrderHub.Application.Exceptions.ApplicationException;
 
 namespace OrderHub.Adapters.Inbound.Api.Controllers;
 
@@ -63,9 +65,27 @@ public class OrdersController : ControllerBase
                 new { orderId = orderResponse.OrderId }, 
                 orderResponse);
         }
+        catch (InvalidRequestException ex)
+        {
+            return BadRequest(new { error = ex.Message, errorCode = ex.ErrorCode });
+        }
+        catch (InvalidOrderStateException ex)
+        {
+            return UnprocessableEntity(new { error = ex.Message, errorCode = ex.ErrorCode });
+        }
+        catch (RepositoryException ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, 
+                new { error = "Erro ao acessar dados", details = ex.Message, errorCode = ex.ErrorCode });
+        }
+        catch (ApplicationException ex)
+        {
+            return BadRequest(new { error = ex.Message, errorCode = ex.ErrorCode });
+        }
         catch (Exception ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return StatusCode(StatusCodes.Status500InternalServerError, 
+                new { error = "Erro ao criar pedido", details = ex.Message });
         }
     }
 
@@ -93,9 +113,27 @@ public class OrdersController : ControllerBase
             var orderResponse = MapToOrderResponse(response);
             return Ok(orderResponse);
         }
+        catch (InvalidRequestException ex)
+        {
+            return BadRequest(new { error = ex.Message, errorCode = ex.ErrorCode });
+        }
+        catch (OrderNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message, errorCode = ex.ErrorCode });
+        }
+        catch (RepositoryException ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, 
+                new { error = "Erro ao acessar dados", details = ex.Message, errorCode = ex.ErrorCode });
+        }
+        catch (ApplicationException ex)
+        {
+            return BadRequest(new { error = ex.Message, errorCode = ex.ErrorCode });
+        }
         catch (Exception ex)
         {
-            return NotFound(new { error = ex.Message });
+            return StatusCode(StatusCodes.Status500InternalServerError, 
+                new { error = "Erro ao recuperar pedido", details = ex.Message });
         }
     }
 
@@ -113,6 +151,16 @@ public class OrdersController : ControllerBase
             // Call use case to list all orders
             var orders = await _listOrdersUseCase.ExecuteAsync(cancellationToken);
             return Ok(orders);
+        }
+        catch (RepositoryException ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, 
+                new { error = "Erro ao acessar dados", details = ex.Message, errorCode = ex.ErrorCode });
+        }
+        catch (ApplicationException ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, 
+                new { error = ex.Message, errorCode = ex.ErrorCode });
         }
         catch (Exception ex)
         {
@@ -164,13 +212,26 @@ public class OrdersController : ControllerBase
             var orderResponse = MapToOrderResponse(response);
             return Ok(orderResponse);
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidRequestException ex)
         {
-            return NotFound(new { error = ex.Message });
+            return BadRequest(new { error = ex.Message, errorCode = ex.ErrorCode });
         }
-        catch (ArgumentException ex)
+        catch (OrderNotFoundException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return NotFound(new { error = ex.Message, errorCode = ex.ErrorCode });
+        }
+        catch (InvalidOrderStateException ex)
+        {
+            return Conflict(new { error = ex.Message, errorCode = ex.ErrorCode });
+        }
+        catch (RepositoryException ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, 
+                new { error = "Erro ao acessar dados", details = ex.Message, errorCode = ex.ErrorCode });
+        }
+        catch (ApplicationException ex)
+        {
+            return BadRequest(new { error = ex.Message, errorCode = ex.ErrorCode });
         }
         catch (Exception ex)
         {
@@ -200,13 +261,22 @@ public class OrdersController : ControllerBase
             
             return NoContent();
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidRequestException ex)
         {
-            return NotFound(new { error = ex.Message });
+            return BadRequest(new { error = ex.Message, errorCode = ex.ErrorCode });
         }
-        catch (ArgumentException ex)
+        catch (OrderNotFoundException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return NotFound(new { error = ex.Message, errorCode = ex.ErrorCode });
+        }
+        catch (RepositoryException ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, 
+                new { error = "Erro ao acessar dados", details = ex.Message, errorCode = ex.ErrorCode });
+        }
+        catch (ApplicationException ex)
+        {
+            return BadRequest(new { error = ex.Message, errorCode = ex.ErrorCode });
         }
         catch (Exception ex)
         {

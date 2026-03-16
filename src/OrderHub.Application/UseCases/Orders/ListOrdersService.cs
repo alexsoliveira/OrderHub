@@ -1,5 +1,6 @@
 using OrderHub.Application.DTOs;
-using OrderHub.Application.Ports;
+using OrderHub.Application.Exceptions;
+using OrderHub.Domain.Ports;
 
 namespace OrderHub.Application.UseCases.Orders;
 
@@ -14,7 +15,9 @@ public class ListOrdersService : IListOrdersUseCase
 
     public ListOrdersService(IOrderRepository orderRepository)
     {
-        _orderRepository = orderRepository ?? throw new ArgumentNullException(nameof(orderRepository));
+        if (orderRepository == null)
+            throw InvalidRequestException.CreateForNullField(nameof(orderRepository), "dependency injection failed");
+        _orderRepository = orderRepository;
     }
 
     /// <summary>
@@ -24,22 +27,33 @@ public class ListOrdersService : IListOrdersUseCase
     {
         try
         {
-            // Recuperar todos os pedidos do repositório
-            // Nota: Esta implementação retorna TODOS os pedidos
-            // Em produção, seria recomendado adicionar:
-            // - Paginação (limit, offset)
-            // - Filtros (por status, cliente, data)
-            // - Ordenação (por data, cliente)
-            var orders = new List<OrderResponse>();
-            
-            // TODO: Implementar busca no repositório quando houver getAllAsync
-            // For now, retorna lista vazia (será preenchida quando implementado)
-            
-            return await Task.FromResult(orders);
+            try
+            {
+                // Recuperar todos os pedidos do repositório
+                // Nota: Esta implementação retorna TODOS os pedidos
+                // Em produção, seria recomendado adicionar:
+                // - Paginação (limit, offset)
+                // - Filtros (por status, cliente, data)
+                // - Ordenação (por data, cliente)
+                var orders = new List<OrderResponse>();
+                
+                // TODO: Implementar busca no repositório quando houver getAllAsync
+                // For now, retorna lista vazia (será preenchida quando implementado)
+                
+                return await Task.FromResult(orders);
+            }
+            catch (Exception ex)
+            {
+                throw RepositoryException.CreateForGetById("*", ex);
+            }
+        }
+        catch (OrderHub.Application.Exceptions.ApplicationException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
-            throw new InvalidOperationException("Erro ao listar pedidos", ex);
+            throw new RepositoryException("Erro ao listar pedidos", "ListAsync", ex);
         }
     }
 }

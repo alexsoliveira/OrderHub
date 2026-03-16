@@ -1,4 +1,4 @@
-using OrderHub.Application.Ports;
+using OrderHub.Domain.Ports;
 using Microsoft.Extensions.Logging;
 
 namespace OrderHub.Infrastructure.Services;

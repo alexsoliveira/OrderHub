@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using OrderHub.Application.Ports;
 using OrderHub.Domain.Ports;
 using OrderHub.Infrastructure.Services;
 
@@ -21,13 +20,10 @@ public static class InfrastructureServiceExtensions
         // Registrar Output Ports de Infraestrutura com padrão Scoped
         
         // Serviço de Notificações
-        // Registra uma única instância que implementa ambas as interfaces
         services.AddScoped<NotificationService>();
         
-        // Mapeia NotificationService para as duas interfaces (Domain e Application)
-        services.AddScoped<Domain.Ports.INotificationPort>(provider =>
-            provider.GetRequiredService<NotificationService>());
-        services.AddScoped<Application.Ports.INotificationPort>(provider =>
+        // Mapeia NotificationService para a interface Domain
+        services.AddScoped<INotificationPort>(provider =>
             provider.GetRequiredService<NotificationService>());
         
         // TODO: Registrar outros serviços conforme forem implementados

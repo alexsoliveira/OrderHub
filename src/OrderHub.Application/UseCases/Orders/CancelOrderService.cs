@@ -1,6 +1,8 @@
-using OrderHub.Application.Ports;
+using OrderHub.Application.Exceptions;
+using OrderHub.Domain.Ports;
 using OrderHub.Application.UseCases;
 using OrderHub.Domain.ValueObjects;
+using OrderHub.Domain.Exceptions;
 
 namespace OrderHub.Application.UseCases.Orders;
 
@@ -17,8 +19,13 @@ public class CancelOrderService : ICancelOrderUseCase
         IUnitOfWork unitOfWork,
         INotificationPort notification)
     {
-        _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
-        _notification = notification ?? throw new ArgumentNullException(nameof(notification));
+        if (unitOfWork == null)
+            throw InvalidRequestException.CreateForNullField(nameof(unitOfWork), "dependency injection failed");
+        if (notification == null)
+            throw InvalidRequestException.CreateForNullField(nameof(notification), "dependency injection failed");
+        
+        _unitOfWork = unitOfWork;
+        _notification = notification;
     }
 
     /// <summary>
@@ -30,34 +37,45 @@ public class CancelOrderService : ICancelOrderUseCase
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(orderId))
-            throw new ArgumentException("OrderId é obrigatório", nameof(orderId));
+            throw InvalidRequestException.CreateForNullField(nameof(orderId));
 
         // Iniciar transação
         await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
         try
         {
-            // Recuperar pedido
-            var orderResponse = await _unitOfWork.Orders.GetByIdAsync(orderId, cancellationToken);
+            try
+            {
+                // Converter string para ValueObject OrderId
+                if (!Guid.TryParse(orderId, out var guidId))
+                    throw new InvalidRequestException(nameof(orderId), "deve ser um GUID válido");
 
-            if (orderResponse == null)
-                throw new InvalidOperationException($"Pedido com ID '{orderId}' não encontrado");
+                var orderIdValueObject = OrderId.Create(guidId);
 
-            // Converter string para ValueObject OrderId
-            var orderIdValueObject = OrderId.Create(Guid.Parse(orderId));
-            
-            // Remover pedido (delete lógico ou físico conforme implementação do repositório)
-            await _unitOfWork.Orders.DeleteAsync(orderIdValueObject, cancellationToken);
+                // Recuperar pedido
+                var order = await _unitOfWork.Orders.GetByIdAsync(orderIdValueObject, cancellationToken);
 
-            // Confirmar transação
-            await _unitOfWork.CommitAsync(cancellationToken);
+                if (order == null)
+                    throw new OrderNotFoundException(orderId);
+                
+                // Remover pedido (delete lógico ou físico conforme implementação do repositório)
+                await _unitOfWork.Orders.DeleteAsync(orderIdValueObject, cancellationToken);
 
-            // Notificar cliente
-            _ = _notification.SendOrderCancelledAsync(
-                orderResponse.CustomerId,
-                orderId,
-                reason ?? "Cancelado pelo cliente",
-                cancellationToken);
+                // Confirmar transação
+                await _unitOfWork.CommitAsync(cancellationToken);
+
+                // Notificar cliente
+                _ = _notification.SendOrderCancelledAsync(
+                    order.CustomerId.Value.ToString(),
+                    orderId,
+                    reason ?? "Cancelado pelo cliente",
+                    cancellationToken);
+            }
+            catch (Exception ex) when (!(ex is OrderHub.Application.Exceptions.ApplicationException))
+            {
+                // Traduzir exceções não-application
+                throw RepositoryException.CreateForDelete(orderId, ex);
+            }
         }
         catch
         {

@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using OrderHub.Application.DTOs;
-using OrderHub.Application.Ports;
 using OrderHub.Domain.Aggregates.Order;
 using OrderHub.Domain.Exceptions;
 using OrderHub.Domain.Ports;
@@ -11,9 +10,9 @@ namespace OrderHub.Adapters.Outbound.Persistence.Repositories;
 /// <summary>
 /// Implementação do repositório de pedidos usando Entity Framework Core
 /// Fornece acesso a dados de Order através de patterns assíncronos
-/// Implementa as interfaces IOrderRepository (Application Port e Domain Port)
+/// Implementa a interface IOrderRepository do Domain Port
 /// </summary>
-public class OrderRepository : Application.Ports.IOrderRepository
+public class OrderRepository : IOrderRepository
 {
     private readonly OrderHubDbContext _context;
 

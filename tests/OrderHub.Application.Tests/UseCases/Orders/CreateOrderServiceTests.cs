@@ -1,6 +1,6 @@
 using Moq;
 using OrderHub.Application.DTOs;
-using OrderHub.Application.Ports;
+using OrderHub.Domain.Ports;
 using OrderHub.Application.UseCases.Orders;
 using OrderHub.Domain.Aggregates.Order;
 using OrderHub.Domain.ValueObjects;

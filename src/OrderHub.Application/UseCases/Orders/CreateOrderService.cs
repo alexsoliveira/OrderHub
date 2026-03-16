@@ -1,8 +1,10 @@
 using OrderHub.Application.DTOs;
-using OrderHub.Application.Ports;
+using OrderHub.Application.Exceptions;
+using OrderHub.Domain.Ports;
 using OrderHub.Application.UseCases;
 using OrderHub.Domain.Aggregates.Order;
 using OrderHub.Domain.ValueObjects;
+using OrderHub.Domain.Exceptions;
 
 namespace OrderHub.Application.UseCases.Orders;
 
@@ -20,8 +22,13 @@ public class CreateOrderService : ICreateOrderUseCase
         IUnitOfWork unitOfWork,
         INotificationPort notification)
     {
-        _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
-        _notification = notification ?? throw new ArgumentNullException(nameof(notification));
+        if (unitOfWork == null)
+            throw InvalidRequestException.CreateForNullField(nameof(unitOfWork), "dependency injection failed");
+        if (notification == null)
+            throw InvalidRequestException.CreateForNullField(nameof(notification), "dependency injection failed");
+        
+        _unitOfWork = unitOfWork;
+        _notification = notification;
     }
 
     /// <summary>
@@ -31,48 +38,62 @@ public class CreateOrderService : ICreateOrderUseCase
         CreateOrderRequest request,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(request);
+        if (request == null)
+            throw InvalidRequestException.CreateForNullField(nameof(request));
 
         // Validar request (validação básica)
         if (string.IsNullOrWhiteSpace(request.CustomerId))
-            throw new ArgumentException("CustomerId é obrigatório", nameof(request.CustomerId));
+            throw InvalidRequestException.CreateForNullField(nameof(request.CustomerId));
 
         if (request.Items == null || request.Items.Count == 0)
-            throw new ArgumentException("Pedido deve ter no mínimo 1 item", nameof(request.Items));
+            throw InvalidRequestException.CreateForEmptyCollection(nameof(request.Items));
 
         // Iniciar transação
         await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
         try
         {
-            // Criar agregado de domínio
-            var orderId = OrderId.Create();
-            var customerId = CustomerId.Parse(request.CustomerId);
-            var order = Order.CreateOrder(orderId, customerId);
-
-            // Adicionar itens ao pedido
-            foreach (var itemDto in request.Items)
+            try
             {
-                var amount = OrderAmount.Create(itemDto.UnitPrice);
-                var productId = ProductId.Create(itemDto.ProductId);
-                var orderItem = new OrderItem(productId, itemDto.Quantity, amount);
-                order.AddItem(orderItem);
+                // Criar agregado de domínio
+                var orderId = OrderId.Create();
+                var customerId = CustomerId.Parse(request.CustomerId);
+                var order = Order.CreateOrder(orderId, customerId);
+
+                // Adicionar itens ao pedido
+                foreach (var itemDto in request.Items)
+                {
+                    var amount = OrderAmount.Create(itemDto.UnitPrice);
+                    var productId = ProductId.Create(itemDto.ProductId);
+                    var orderItem = new OrderItem(productId, itemDto.Quantity, amount);
+                    order.AddItem(orderItem);
+                }
+
+                // Persistir pedido
+                await _unitOfWork.Orders.SaveAsync(order, cancellationToken);
+
+                // Confirmar transação
+                await _unitOfWork.CommitAsync(cancellationToken);
+
+                // Notificar cliente (assincrono, não bloqueia o retorno)
+                _ = _notification.SendOrderConfirmationAsync(
+                    request.CustomerId,
+                    order.OrderId.Value.ToString(),
+                    cancellationToken);
+
+                // Converter para DTO e retornar
+                return Mappers.OrderMapper.ToResponse(order);
             }
-
-            // Persistir pedido
-            await _unitOfWork.Orders.SaveAsync(order, cancellationToken);
-
-            // Confirmar transação
-            await _unitOfWork.CommitAsync(cancellationToken);
-
-            // Notificar cliente (assincrono, não bloqueia o retorno)
-            _ = _notification.SendOrderConfirmationAsync(
-                request.CustomerId,
-                order.OrderId.Value.ToString(),
-                cancellationToken);
-
-            // Converter para DTO e retornar
-            return Mappers.OrderMapper.ToResponse(order);
+            catch (DomainException ex)
+            {
+                // Traduzir exceção de domínio para exceção de aplicação
+                throw new InvalidOrderStateException($"Erro ao criar pedido: {ex.Message}");
+            }
+            catch (Exception ex) when (!(ex is OrderHub.Application.Exceptions.ApplicationException))
+            {
+                // Traduzir outras exceções para RepositoryException se for do repositório
+                throw RepositoryException.CreateForSave(request.CustomerId, ex);
+            }
         }
         catch
         {

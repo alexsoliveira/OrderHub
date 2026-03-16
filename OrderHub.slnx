@@ -9,6 +9,6 @@
   <Folder Name="/tests/">
     <Project Path="tests/OrderHub.Api.IntegrationTests/OrderHub.Api.IntegrationTests.csproj" />
     <Project Path="tests/OrderHub.Domain.Tests/OrderHub.Domain.Tests.csproj" />
-    <Project Path="tests/OrderHub.UnitTests/OrderHub.UnitTests.csproj" />
+    <Project Path="tests/OrderHub.Application.Tests/OrderHub.Application.Tests.csproj" />
   </Folder>
 </Solution>
