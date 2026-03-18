@@ -5,6 +5,7 @@ using OrderHub.Application.UseCases;
 using OrderHub.Domain.Aggregates.Order;
 using OrderHub.Domain.ValueObjects;
 using OrderHub.Domain.Exceptions;
+using Microsoft.Extensions.Logging;
 
 namespace OrderHub.Application.UseCases.Orders;
 
@@ -17,18 +18,23 @@ public class CreateOrderService : ICreateOrderUseCase
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly INotificationPort _notification;
+    private readonly ILogger<CreateOrderService> _logger;
 
     public CreateOrderService(
         IUnitOfWork unitOfWork,
-        INotificationPort notification)
+        INotificationPort notification,
+        ILogger<CreateOrderService> logger)
     {
         if (unitOfWork == null)
             throw InvalidRequestException.CreateForNullField(nameof(unitOfWork), "dependency injection failed");
         if (notification == null)
             throw InvalidRequestException.CreateForNullField(nameof(notification), "dependency injection failed");
+        if (logger == null)
+            throw InvalidRequestException.CreateForNullField(nameof(logger), "dependency injection failed");
         
         _unitOfWork = unitOfWork;
         _notification = notification;
+        _logger = logger;
     }
 
     /// <summary>
@@ -38,6 +44,8 @@ public class CreateOrderService : ICreateOrderUseCase
         CreateOrderRequest request,
         CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("Iniciando CreateOrderUseCase com CustomerId: {CustomerId}", request?.CustomerId);
+
         if (request == null)
             throw InvalidRequestException.CreateForNullField(nameof(request));
 
@@ -60,6 +68,9 @@ public class CreateOrderService : ICreateOrderUseCase
                 var customerId = CustomerId.Parse(request.CustomerId);
                 var order = Order.CreateOrder(orderId, customerId);
 
+                _logger.LogInformation("Agregado Order criado com sucesso. OrderId: {OrderId}, CustomerId: {CustomerId}", 
+                    orderId.Value, customerId.Value);
+
                 // Adicionar itens ao pedido
                 foreach (var itemDto in request.Items)
                 {
@@ -69,11 +80,17 @@ public class CreateOrderService : ICreateOrderUseCase
                     order.AddItem(orderItem);
                 }
 
+                _logger.LogInformation("Itens adicionados ao pedido com sucesso. ItemCount: {ItemCount}", 
+                    order.Items.Count);
+
                 // Persistir pedido
                 await _unitOfWork.Orders.SaveAsync(order, cancellationToken);
 
                 // Confirmar transação
                 await _unitOfWork.CommitAsync(cancellationToken);
+
+                _logger.LogInformation("CreateOrderUseCase concluído com sucesso. OrderId: {OrderId}, ItemCount: {ItemCount}", 
+                    orderId.Value, order.Items.Count);
 
                 // Notificar cliente (assincrono, não bloqueia o retorno)
                 _ = _notification.SendOrderConfirmationAsync(
@@ -87,17 +104,20 @@ public class CreateOrderService : ICreateOrderUseCase
             catch (DomainException ex)
             {
                 // Traduzir exceção de domínio para exceção de aplicação
+                _logger.LogWarning(ex, "Erro de domínio ao criar pedido. CustomerId: {CustomerId}", request.CustomerId);
                 throw new InvalidOrderStateException($"Erro ao criar pedido: {ex.Message}");
             }
             catch (Exception ex) when (!(ex is OrderHub.Application.Exceptions.ApplicationException))
             {
                 // Traduzir outras exceções para RepositoryException se for do repositório
+                _logger.LogError(ex, "Erro inesperado ao criar pedido. CustomerId: {CustomerId}", request.CustomerId);
                 throw RepositoryException.CreateForSave(request.CustomerId, ex);
             }
         }
         catch
         {
             // Desfazer transação em caso de erro
+            _logger.LogWarning("Desfazendo transação - erro ao criar pedido");
             await _unitOfWork.RollbackAsync(cancellationToken);
             throw;
         }

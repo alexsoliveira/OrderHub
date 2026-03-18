@@ -3,6 +3,7 @@ using OrderHub.Application.Exceptions;
 using OrderHub.Domain.Ports;
 using OrderHub.Application.UseCases;
 using OrderHub.Domain.ValueObjects;
+using Microsoft.Extensions.Logging;
 
 namespace OrderHub.Application.UseCases.Orders;
 
@@ -13,12 +14,16 @@ namespace OrderHub.Application.UseCases.Orders;
 public class GetOrderService : IGetOrderUseCase
 {
     private readonly IOrderRepository _orderRepository;
+    private readonly ILogger<GetOrderService> _logger;
 
-    public GetOrderService(IOrderRepository orderRepository)
+    public GetOrderService(IOrderRepository orderRepository, ILogger<GetOrderService> logger)
     {
         if (orderRepository == null)
             throw InvalidRequestException.CreateForNullField(nameof(orderRepository), "dependency injection failed");
+        if (logger == null)
+            throw InvalidRequestException.CreateForNullField(nameof(logger), "dependency injection failed");
         _orderRepository = orderRepository;
+        _logger = logger;
     }
 
     /// <summary>
@@ -28,6 +33,8 @@ public class GetOrderService : IGetOrderUseCase
         string orderId,
         CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("Iniciando GetOrderUseCase para OrderId: {OrderId}", orderId);
+
         if (string.IsNullOrWhiteSpace(orderId))
             throw InvalidRequestException.CreateForNullField(nameof(orderId));
 
@@ -39,7 +46,13 @@ public class GetOrderService : IGetOrderUseCase
         var order = await _orderRepository.GetByIdAsync(orderIdValueObject, cancellationToken);
 
         if (order == null)
+        {
+            _logger.LogWarning("Pedido não encontrado. OrderId: {OrderId}", orderId);
             throw new OrderNotFoundException(orderId);
+        }
+
+        _logger.LogInformation("Pedido recuperado com sucesso. OrderId: {OrderId}, CustomerId: {CustomerId}", 
+            orderId, order.CustomerId.Value);
 
         // Mapear Order (domínio) para OrderResponse (API)
         return MapOrderToResponse(order);
@@ -52,10 +65,16 @@ public class GetOrderService : IGetOrderUseCase
         string customerId,
         CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("Iniciando GetByCustomerUseCase para CustomerId: {CustomerId}", customerId);
+
         if (string.IsNullOrWhiteSpace(customerId))
             throw InvalidRequestException.CreateForNullField(nameof(customerId));
 
         var orders = await _orderRepository.GetByCustomerIdAsync(customerId, cancellationToken);
+        
+        _logger.LogInformation("Pedidos recuperados com sucesso. CustomerId: {CustomerId}, ItemCount: {ItemCount}", 
+            customerId, orders.Count);
+
         return orders.Select(MapOrderToResponse).ToList();
     }
 

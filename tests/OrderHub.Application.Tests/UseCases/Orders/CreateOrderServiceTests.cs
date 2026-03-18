@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Moq;
 using OrderHub.Application.DTOs;
 using OrderHub.Domain.Ports;
@@ -12,6 +13,7 @@ public class CreateOrderServiceTests
     private readonly Mock<IUnitOfWork> _mockUnitOfWork;
     private readonly Mock<IOrderRepository> _mockOrderRepository;
     private readonly Mock<INotificationPort> _mockNotification;
+    private readonly Mock<ILogger<CreateOrderService>> _mockLogger;
     private readonly CreateOrderService _service;
 
     public CreateOrderServiceTests()
@@ -19,6 +21,7 @@ public class CreateOrderServiceTests
         _mockUnitOfWork = new Mock<IUnitOfWork>();
         _mockOrderRepository = new Mock<IOrderRepository>();
         _mockNotification = new Mock<INotificationPort>();
+        _mockLogger = new Mock<ILogger<CreateOrderService>>();
 
         // Setup: A propriedade Orders do IUnitOfWork retorna o mock do repositório
         _mockUnitOfWork.Setup(x => x.Orders).Returns(_mockOrderRepository.Object);
@@ -49,7 +52,7 @@ public class CreateOrderServiceTests
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _service = new CreateOrderService(_mockUnitOfWork.Object, _mockNotification.Object);
+        _service = new CreateOrderService(_mockUnitOfWork.Object, _mockNotification.Object, _mockLogger.Object);
     }
 
     [Fact]

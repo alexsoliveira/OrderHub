@@ -12,8 +12,14 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <!-- Swashbuckle upgraded to 6.6.0+ for .NET 10 compatibility -->
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.0" />
+    <!-- Swagger removed - will be fixed in next version -->
+    <!-- Serilog for structured logging -->
+    <PackageReference Include="Serilog" Version="4.0.1" />
+    <PackageReference Include="Serilog.AspNetCore" Version="8.0.1" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="5.0.1" />
+    <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
+    <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.8.0" />
   </ItemGroup>
 
   <ItemGroup>

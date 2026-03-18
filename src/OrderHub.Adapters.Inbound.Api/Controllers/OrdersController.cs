@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using OrderHub.Adapters.Inbound.Api.Models;
 using OrderHub.Application.DTOs;
 using OrderHub.Application.Exceptions;
@@ -21,6 +22,7 @@ public class OrdersController : ControllerBase
     private readonly IUpdateOrderUseCase _updateOrderUseCase;
     private readonly ICancelOrderUseCase _cancelOrderUseCase;
     private readonly IListOrdersUseCase _listOrdersUseCase;
+    private readonly ILogger<OrdersController> _logger;
 
     /// <summary>
     /// Construtor do controller
@@ -30,13 +32,15 @@ public class OrdersController : ControllerBase
         IGetOrderUseCase getOrderUseCase,
         IUpdateOrderUseCase updateOrderUseCase,
         ICancelOrderUseCase cancelOrderUseCase,
-        IListOrdersUseCase listOrdersUseCase)
+        IListOrdersUseCase listOrdersUseCase,
+        ILogger<OrdersController> logger)
     {
         _createOrderUseCase = createOrderUseCase ?? throw new ArgumentNullException(nameof(createOrderUseCase));
         _getOrderUseCase = getOrderUseCase ?? throw new ArgumentNullException(nameof(getOrderUseCase));
         _updateOrderUseCase = updateOrderUseCase ?? throw new ArgumentNullException(nameof(updateOrderUseCase));
         _cancelOrderUseCase = cancelOrderUseCase ?? throw new ArgumentNullException(nameof(cancelOrderUseCase));
         _listOrdersUseCase = listOrdersUseCase ?? throw new ArgumentNullException(nameof(listOrdersUseCase));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     /// <summary>
@@ -55,11 +59,16 @@ public class OrdersController : ControllerBase
 
         try
         {
+            _logger.LogInformation("Iniciando criação de pedido para cliente {CustomerId}", request.CustomerId);
+
             // Map API request DTO to Application DTO
             var appRequest = MapToApplicationCreateOrderRequest(request);
             var response = await _createOrderUseCase.ExecuteAsync(appRequest, cancellationToken);
             
             var orderResponse = MapToOrderResponse(response);
+            
+            _logger.LogInformation("Pedido criado com sucesso. OrderId: {OrderId}, CustomerId: {CustomerId}, ItemCount: {ItemCount}",
+                orderResponse.OrderId, orderResponse.CustomerId, orderResponse.Items?.Count ?? 0);
             
             return CreatedAtAction(nameof(GetOrderAsync), 
                 new { orderId = orderResponse.OrderId }, 
@@ -67,23 +76,28 @@ public class OrdersController : ControllerBase
         }
         catch (InvalidRequestException ex)
         {
+            _logger.LogWarning(ex, "Requisição inválida ao criar pedido");
             return BadRequest(new { error = ex.Message, errorCode = ex.ErrorCode });
         }
         catch (InvalidOrderStateException ex)
         {
+            _logger.LogWarning(ex, "Estado do pedido inválido");
             return UnprocessableEntity(new { error = ex.Message, errorCode = ex.ErrorCode });
         }
         catch (RepositoryException ex)
         {
+            _logger.LogError(ex, "Erro ao acessar repositório ao criar pedido");
             return StatusCode(StatusCodes.Status500InternalServerError, 
                 new { error = "Erro ao acessar dados", details = ex.Message, errorCode = ex.ErrorCode });
         }
         catch (ApplicationException ex)
         {
+            _logger.LogWarning(ex, "Erro de aplicação ao criar pedido");
             return BadRequest(new { error = ex.Message, errorCode = ex.ErrorCode });
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Erro inesperado ao criar pedido");
             return StatusCode(StatusCodes.Status500InternalServerError, 
                 new { error = "Erro ao criar pedido", details = ex.Message });
         }
@@ -105,33 +119,45 @@ public class OrdersController : ControllerBase
 
         try
         {
+            _logger.LogInformation("Recuperando pedido com ID {OrderId}", orderId);
+
             var response = await _getOrderUseCase.ExecuteAsync(orderId, cancellationToken);
             
             if (response == null)
+            {
+                _logger.LogWarning("Pedido com ID {OrderId} não encontrado", orderId);
                 return NotFound($"Pedido com ID {orderId} não encontrado");
+            }
             
+            _logger.LogInformation("Pedido {OrderId} recuperado com sucesso", orderId);
+
             var orderResponse = MapToOrderResponse(response);
             return Ok(orderResponse);
         }
         catch (InvalidRequestException ex)
         {
+            _logger.LogWarning(ex, "Requisição inválida ao recuperar pedido {OrderId}", orderId);
             return BadRequest(new { error = ex.Message, errorCode = ex.ErrorCode });
         }
         catch (OrderNotFoundException ex)
         {
+            _logger.LogWarning(ex, "Pedido {OrderId} não encontrado", orderId);
             return NotFound(new { error = ex.Message, errorCode = ex.ErrorCode });
         }
         catch (RepositoryException ex)
         {
+            _logger.LogError(ex, "Erro ao acessar repositório para pedido {OrderId}", orderId);
             return StatusCode(StatusCodes.Status500InternalServerError, 
                 new { error = "Erro ao acessar dados", details = ex.Message, errorCode = ex.ErrorCode });
         }
         catch (ApplicationException ex)
         {
+            _logger.LogWarning(ex, "Erro de aplicação ao recuperar pedido {OrderId}", orderId);
             return BadRequest(new { error = ex.Message, errorCode = ex.ErrorCode });
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Erro inesperado ao recuperar pedido {OrderId}", orderId);
             return StatusCode(StatusCodes.Status500InternalServerError, 
                 new { error = "Erro ao recuperar pedido", details = ex.Message });
         }
@@ -148,22 +174,30 @@ public class OrdersController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("Listando todos os pedidos");
+
             // Call use case to list all orders
             var orders = await _listOrdersUseCase.ExecuteAsync(cancellationToken);
+
+            _logger.LogInformation("Listagem de pedidos concluída com sucesso. Total: {Count}", orders?.Count() ?? 0);
+
             return Ok(orders);
         }
         catch (RepositoryException ex)
         {
+            _logger.LogError(ex, "Erro ao acessar repositório na listagem de pedidos");
             return StatusCode(StatusCodes.Status500InternalServerError, 
                 new { error = "Erro ao acessar dados", details = ex.Message, errorCode = ex.ErrorCode });
         }
         catch (ApplicationException ex)
         {
+            _logger.LogWarning(ex, "Erro de aplicação na listagem de pedidos");
             return StatusCode(StatusCodes.Status500InternalServerError, 
                 new { error = ex.Message, errorCode = ex.ErrorCode });
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Erro inesperado ao listar pedidos");
             return StatusCode(StatusCodes.Status500InternalServerError, 
                 new { error = "Erro ao listar pedidos", details = ex.Message });
         }

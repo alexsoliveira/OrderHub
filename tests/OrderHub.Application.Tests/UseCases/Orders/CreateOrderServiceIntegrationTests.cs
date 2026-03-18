@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Moq;
 using OrderHub.Domain.Ports;
 using OrderHub.Application.Tests.Fixtures;
@@ -15,6 +16,7 @@ public class CreateOrderServiceIntegrationTests
     private readonly InMemoryOrderRepository _repository;
     private readonly Mock<IUnitOfWork> _mockUnitOfWork;
     private readonly Mock<INotificationPort> _mockNotification;
+    private readonly Mock<ILogger<CreateOrderService>> _mockLogger;
     private readonly CreateOrderService _service;
 
     public CreateOrderServiceIntegrationTests()
@@ -22,6 +24,7 @@ public class CreateOrderServiceIntegrationTests
         _repository = new InMemoryOrderRepository();
         _mockUnitOfWork = new Mock<IUnitOfWork>();
         _mockNotification = new Mock<INotificationPort>();
+        _mockLogger = new Mock<ILogger<CreateOrderService>>();
 
         _mockUnitOfWork.Setup(x => x.Orders).Returns(_repository);
         _mockUnitOfWork
@@ -37,7 +40,7 @@ public class CreateOrderServiceIntegrationTests
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _service = new CreateOrderService(_mockUnitOfWork.Object, _mockNotification.Object);
+        _service = new CreateOrderService(_mockUnitOfWork.Object, _mockNotification.Object, _mockLogger.Object);
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Moq;
 using OrderHub.Domain.Ports;
 using OrderHub.Application.UseCases.Orders;
@@ -12,13 +13,15 @@ public class CancelOrderServiceTests
 {
     private readonly Mock<IUnitOfWork> _mockUnitOfWork;
     private readonly Mock<INotificationPort> _mockNotification;
+    private readonly Mock<ILogger<CancelOrderService>> _mockLogger;
     private readonly CancelOrderService _service;
 
     public CancelOrderServiceTests()
     {
         _mockUnitOfWork = new Mock<IUnitOfWork>();
         _mockNotification = new Mock<INotificationPort>();
-        _service = new CancelOrderService(_mockUnitOfWork.Object, _mockNotification.Object);
+        _mockLogger = new Mock<ILogger<CancelOrderService>>();
+        _service = new CancelOrderService(_mockUnitOfWork.Object, _mockNotification.Object, _mockLogger.Object);
     }
 
     [Fact]

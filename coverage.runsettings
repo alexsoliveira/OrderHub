@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+    <DataCollectionRunSettings>
+        <DataCollectors>
+            <DataCollector friendlyName="XPlat code coverage">
+                <Configuration>
+                    <!-- Configuração de cobertura de código -->
+                    <Format>opencover,json</Format>
+                    <ExcludeByFile>
+                        <Include>
+                            <Value>**/migrations/*</Value>
+                            <Value>**/Program.cs</Value>
+                            <Value>**/Program.Generated.cs</Value>
+                            <Value>**/*Startup.cs</Value>
+                            <Value>**/Properties/**/*.cs</Value>
+                        </Include>
+                    </ExcludeByFile>
+                    <ExcludeByAttribute>
+                        <Include>
+                            <Value>Obfuscated</Value>
+                            <Value>System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute</Value>
+                            <Value>System.CodeDom.Compiler.GeneratedCodeAttribute</Value>
+                        </Include>
+                    </ExcludeByAttribute>
+                    <!-- Excluder by coverage level -->
+                    <UseSourceLink>true</UseSourceLink>
+                </Configuration>
+            </DataCollector>
+        </DataCollectors>
+    </DataCollectionRunSettings>
+    <!-- Configuração de Logger -->
+    <LoggerRunSettings>
+        <Verbosity level="Normal"/>
+    </LoggerRunSettings>
+    <!-- Configuração de Timeout de Teste -->
+    <RunConfiguration>
+        <TestSessionTimeout>600000</TestSessionTimeout>
+    </RunConfiguration>
+</RunSettings>

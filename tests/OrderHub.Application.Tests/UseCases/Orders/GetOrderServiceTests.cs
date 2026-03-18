@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Moq;
 using OrderHub.Application.DTOs;
 using OrderHub.Domain.Ports;
@@ -15,12 +16,14 @@ namespace OrderHub.Application.Tests.UseCases.Orders;
 public class GetOrderServiceTests
 {
     private readonly Mock<IOrderRepository> _mockOrderRepository;
+    private readonly Mock<ILogger<GetOrderService>> _mockLogger;
     private readonly GetOrderService _service;
 
     public GetOrderServiceTests()
     {
         _mockOrderRepository = new Mock<IOrderRepository>();
-        _service = new GetOrderService(_mockOrderRepository.Object);
+        _mockLogger = new Mock<ILogger<GetOrderService>>();
+        _service = new GetOrderService(_mockOrderRepository.Object, _mockLogger.Object);
     }
 
     [Fact]

@@ -1,6 +1,7 @@
 using OrderHub.Application.DTOs;
 using OrderHub.Application.Exceptions;
 using OrderHub.Domain.Ports;
+using Microsoft.Extensions.Logging;
 
 namespace OrderHub.Application.UseCases.Orders;
 
@@ -12,12 +13,16 @@ namespace OrderHub.Application.UseCases.Orders;
 public class ListOrdersService : IListOrdersUseCase
 {
     private readonly IOrderRepository _orderRepository;
+    private readonly ILogger<ListOrdersService> _logger;
 
-    public ListOrdersService(IOrderRepository orderRepository)
+    public ListOrdersService(IOrderRepository orderRepository, ILogger<ListOrdersService> logger)
     {
         if (orderRepository == null)
             throw InvalidRequestException.CreateForNullField(nameof(orderRepository), "dependency injection failed");
+        if (logger == null)
+            throw InvalidRequestException.CreateForNullField(nameof(logger), "dependency injection failed");
         _orderRepository = orderRepository;
+        _logger = logger;
     }
 
     /// <summary>
@@ -25,6 +30,8 @@ public class ListOrdersService : IListOrdersUseCase
     /// </summary>
     public async Task<List<OrderResponse>> ExecuteAsync(CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("Iniciando ListOrdersUseCase");
+
         try
         {
             try
@@ -39,11 +46,13 @@ public class ListOrdersService : IListOrdersUseCase
                 
                 // TODO: Implementar busca no repositório quando houver getAllAsync
                 // For now, retorna lista vazia (será preenchida quando implementado)
-                
+
+                _logger.LogInformation("ListOrdersUseCase concluído com sucesso. ItemCount: {ItemCount}", orders.Count);
                 return await Task.FromResult(orders);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Erro ao recuperar pedidos do repositório");
                 throw RepositoryException.CreateForGetById("*", ex);
             }
         }
@@ -53,6 +62,7 @@ public class ListOrdersService : IListOrdersUseCase
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Erro inesperado ao listar pedidos");
             throw new RepositoryException("Erro ao listar pedidos", "ListAsync", ex);
         }
     }

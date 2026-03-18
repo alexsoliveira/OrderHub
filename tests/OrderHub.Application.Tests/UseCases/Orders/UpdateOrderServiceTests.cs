@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Moq;
 using OrderHub.Domain.Ports;
 using OrderHub.Application.UseCases.Orders;
@@ -11,12 +12,14 @@ namespace OrderHub.Application.Tests.UseCases.Orders;
 public class UpdateOrderServiceTests
 {
     private readonly Mock<IUnitOfWork> _mockUnitOfWork;
+    private readonly Mock<ILogger<UpdateOrderService>> _mockLogger;
     private readonly UpdateOrderService _service;
 
     public UpdateOrderServiceTests()
     {
         _mockUnitOfWork = new Mock<IUnitOfWork>();
-        _service = new UpdateOrderService(_mockUnitOfWork.Object);
+        _mockLogger = new Mock<ILogger<UpdateOrderService>>();
+        _service = new UpdateOrderService(_mockUnitOfWork.Object, _mockLogger.Object);
     }
 
     [Fact]
